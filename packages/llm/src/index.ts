@@ -78,7 +78,7 @@ export async function chat(
   const text = await res.text();
   if (!res.ok) {
     throw new LLMError(
-      `LLM request failed (${res.status})`,
+      `LLM request failed (${res.status}): ${text.slice(0, 200)}`,
       res.status,
       text.slice(0, 500),
     );
