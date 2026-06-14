@@ -1,0 +1,21 @@
+{
+  "name": "@cr/tap-edit-runtime",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.tsx",
+  "types": "./src/index.tsx",
+  "exports": {
+    ".": "./src/index.tsx"
+  },
+  "scripts": {
+    "build": "echo \"consumed as source by Metro\" && exit 0",
+    "test": "echo \"no tests\" && exit 0"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*"
+  },
+  "dependencies": {
+    "@cr/protocol": "workspace:*"
+  }
+}
