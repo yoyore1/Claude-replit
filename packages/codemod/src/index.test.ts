@@ -114,7 +114,7 @@ describe("applyEdit — color", () => {
     expect(res.code).toContain("backgroundColor");
   });
 
-  it("follows a StyleSheet.create reference", () => {
+  it("overrides a StyleSheet ref element-scoped (wraps in array, leaves shared style)", () => {
     const code = [
       "import { StyleSheet, Text } from 'react-native';",
       "export default () => <Text style={styles.title}>Hi</Text>;",
@@ -130,8 +130,23 @@ describe("applyEdit — color", () => {
     });
     expect(res.ok).toBe(true);
     expect(res.code).toContain("rebeccapurple");
-    expect(res.code).not.toContain("color: 'black'");
-    expect(res.code).toContain("fontSize: 20");
+    // Element-scoped: the shared StyleSheet entry is untouched...
+    expect(res.code).toContain("color: 'black'");
+    // ...and the ref is preserved inside an array with the inline override.
+    expect(res.code).toContain("styles.title");
+    expect(res.code).toMatch(/\[\s*styles\.title\s*,/);
+  });
+
+  it("overrides a token / PlatformColor value element-scoped", () => {
+    const code = `export default () => <Text style={{ color: tokens.label }}>Hi</Text>;\n`;
+    const res = applyEdit(code, {
+      source: locOf(code, "Text"),
+      kind: "color",
+      value: "#123456",
+    });
+    expect(res.ok).toBe(true);
+    expect(res.code).toContain('"#123456"');
+    expect(res.code).not.toContain("tokens.label");
   });
 
   it("edits the inline override inside a style array", () => {
@@ -148,6 +163,56 @@ describe("applyEdit — color", () => {
     });
     expect(res.ok).toBe(true);
     expect(res.code).toContain("green");
+  });
+});
+
+describe("applyEdit — prop (component text)", () => {
+  it("edits a string prop on a component", () => {
+    const code = `export default () => <SettingsRow label="Notifications" />;\n`;
+    const res = applyEdit(code, {
+      source: locOf(code, "SettingsRow"),
+      kind: "prop",
+      prop: "label",
+      value: "Reminders",
+    });
+    expect(res.ok).toBe(true);
+    expect(res.code).toContain('label="Reminders"');
+    expect(res.code).not.toContain("Notifications");
+  });
+
+  it("edits a {'string'} prop expression", () => {
+    const code = `export default () => <AppButton title={'Save'} />;\n`;
+    const res = applyEdit(code, {
+      source: locOf(code, "AppButton"),
+      kind: "prop",
+      prop: "title",
+      value: "Done",
+    });
+    expect(res.ok).toBe(true);
+    expect(res.code).toContain("Done");
+    expect(res.code).not.toContain("Save");
+  });
+
+  it("adds the prop when missing", () => {
+    const code = `export default () => <AppButton />;\n`;
+    const res = applyEdit(code, {
+      source: locOf(code, "AppButton"),
+      kind: "prop",
+      prop: "title",
+      value: "Go",
+    });
+    expect(res.ok).toBe(true);
+    expect(res.code).toContain('title="Go"');
+  });
+
+  it("errors when prop name is missing", () => {
+    const code = `export default () => <AppButton title="x" />;\n`;
+    const res = applyEdit(code, {
+      source: locOf(code, "AppButton"),
+      kind: "prop",
+      value: "y",
+    });
+    expect(res.ok).toBe(false);
   });
 });
 

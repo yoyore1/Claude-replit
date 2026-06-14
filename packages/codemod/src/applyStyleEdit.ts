@@ -1,138 +1,70 @@
-import { t, b, type ASTNode } from "./parse.js";
+import { b } from "./parse.js";
 
 /**
- * Set a style property (e.g. color / backgroundColor) on a JSX element, editing
- * the *source of truth* wherever it lives:
- *   style={{ color: 'red' }}            inline object literal
- *   style={styles.title}                StyleSheet.create / object reference
- *   style={[styles.title, { ... }]}     array -> edits the inline override,
- *                                       else falls back to the first ref
- * When the element has no style prop at all, one is added inline.
+ * Set a style property (color / backgroundColor) on a JSX element, scoped to
+ * THIS element only ("override this element").
  *
- * Throws with a friendly message when the target cannot be resolved (v1 does not
- * follow spreads or computed members).
+ * We never edit a shared StyleSheet entry or a token, because that would change
+ * every element using it. Instead we ensure the element has an inline style
+ * override object and set the key there:
+ *   style={styles.title}            -> style={[styles.title, { color: "#.." }]}
+ *   style={{ color: tokens.x }}      -> style={{ color: "#.." }}
+ *   style={[a, { ... }]}             -> edits the trailing inline object
+ *   (no style)                       -> style={{ color: "#.." }}
  */
 export function applyStyleEdit(
-  ast: ASTNode,
   elementPath: any,
   key: string,
   value: string,
 ): void {
   const opening = elementPath.node.openingElement;
+  const override = ensureInlineOverride(opening);
+  setObjectProp(override, key, value);
+}
+
+/** Return (creating if needed) an inline ObjectExpression we can write keys to. */
+function ensureInlineOverride(opening: any): any {
   const attrs: any[] = opening.attributes ?? [];
   const styleAttr = attrs.find(
     (a) => a.type === "JSXAttribute" && a.name?.name === "style",
   );
 
   if (!styleAttr) {
-    // No style prop yet: add an inline one.
+    const obj = b.objectExpression([]);
     opening.attributes = [
       ...attrs,
-      b.jsxAttribute(
-        b.jsxIdentifier("style"),
-        b.jsxExpressionContainer(
-          b.objectExpression([
-            b.objectProperty(b.identifier(key), b.stringLiteral(value)),
-          ]),
-        ),
-      ),
+      b.jsxAttribute(b.jsxIdentifier("style"), b.jsxExpressionContainer(obj)),
     ];
-    return;
+    return obj;
   }
 
   const container = styleAttr.value;
   if (!container || container.type !== "JSXExpressionContainer") {
-    throw new Error("Unsupported style prop (expected an expression).");
+    // style="something" (unusual) — replace with an inline object.
+    const obj = b.objectExpression([]);
+    styleAttr.value = b.jsxExpressionContainer(obj);
+    return obj;
   }
 
-  const target = resolveStyleObject(ast, container.expression);
-  if (!target) {
-    throw new Error(
-      "Could not resolve the style object to edit (spreads / computed styles aren't supported yet).",
-    );
-  }
-  setObjectProp(target, key, value);
-}
-
-/** Resolve a style expression down to the ObjectExpression we should mutate. */
-function resolveStyleObject(ast: ASTNode, expr: any): any | null {
-  if (!expr) return null;
+  const expr = container.expression;
 
   if (expr.type === "ObjectExpression") return expr;
 
-  if (expr.type === "Identifier" || expr.type === "MemberExpression") {
-    return resolveReference(ast, expr);
-  }
-
   if (expr.type === "ArrayExpression") {
-    // Prefer an inline override object (last one wins at runtime).
-    const inline = [...expr.elements]
+    const lastInline = [...expr.elements]
       .reverse()
       .find((e: any) => e && e.type === "ObjectExpression");
-    if (inline) return inline;
-    // Otherwise fall back to the first resolvable reference.
-    for (const el of expr.elements) {
-      if (!el) continue;
-      const resolved = resolveStyleObject(ast, el);
-      if (resolved) return resolved;
-    }
+    if (lastInline) return lastInline;
+    const obj = b.objectExpression([]);
+    expr.elements.push(obj);
+    return obj;
   }
 
-  return null;
-}
-
-/**
- * Follow `styles` / `styles.title` to the ObjectExpression that defines it,
- * whether it came from `StyleSheet.create({...})` or a plain object literal.
- */
-function resolveReference(ast: ASTNode, expr: any): any | null {
-  let baseName: string;
-  let propName: string | null = null;
-
-  if (expr.type === "Identifier") {
-    baseName = expr.name;
-  } else {
-    // MemberExpression: styles.title  (only single, non-computed members in v1)
-    if (expr.computed || expr.object.type !== "Identifier") return null;
-    baseName = expr.object.name;
-    propName =
-      expr.property.type === "Identifier"
-        ? expr.property.name
-        : expr.property.value;
-  }
-
-  const root = findDeclaratorObject(ast, baseName);
-  if (!root) return null;
-  if (!propName) return root;
-
-  const prop = findProp(root, propName);
-  if (prop && prop.value.type === "ObjectExpression") return prop.value;
-  return null;
-}
-
-/** Find `const <name> = StyleSheet.create({...})` or `const <name> = {...}`. */
-function findDeclaratorObject(ast: ASTNode, name: string): any | null {
-  let result: any = null;
-  t.visit(ast, {
-    visitVariableDeclarator(path) {
-      const node = path.node;
-      if (node.id.type === "Identifier" && node.id.name === name) {
-        const init = node.init;
-        if (init?.type === "ObjectExpression") {
-          result = init;
-        } else if (
-          init?.type === "CallExpression" &&
-          init.arguments[0]?.type === "ObjectExpression"
-        ) {
-          // StyleSheet.create({...})
-          result = init.arguments[0];
-        }
-        return false;
-      }
-      this.traverse(path);
-    },
-  });
-  return result;
+  // Reference / token / PlatformColor(...) / call etc: keep it and append an
+  // inline override so the change is element-scoped.
+  const obj = b.objectExpression([]);
+  container.expression = b.arrayExpression([expr, obj]);
+  return obj;
 }
 
 function findProp(objExpr: any, name: string): any | null {
@@ -157,6 +89,7 @@ function setObjectProp(objExpr: any, key: string, value: string): void {
   const existing = findProp(objExpr, key);
   if (existing) {
     existing.value = b.stringLiteral(value);
+    if (existing.value.extra) delete existing.value.extra;
     return;
   }
   objExpr.properties = [

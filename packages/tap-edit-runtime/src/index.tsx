@@ -7,6 +7,8 @@ import {
 } from "@cr/protocol";
 import { resolveElementAtPoint, type ResolvedElement } from "./fiber.js";
 
+export { tapField } from "./tapField.js";
+
 export interface TapEditProviderProps {
   children: React.ReactNode;
   /** WebSocket URL of the backend hub's app channel. */
@@ -106,6 +108,7 @@ export function TapEditProvider({
           source: resolved.source,
           componentName: resolved.componentName,
           currentText: resolved.currentText,
+          field: resolved.field,
           currentStyle: resolved.currentStyle,
         },
       });

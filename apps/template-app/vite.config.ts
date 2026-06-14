@@ -26,9 +26,17 @@ export default defineConfig({
     }),
   ],
   resolve: {
-    // The heart of the web preview: RN -> react-native-web.
+    // The heart of the web preview: RN -> react-native-web, plus web shims for
+    // the iOS-native deps so the kit bundles and looks iOS in the browser.
     alias: {
       "react-native": "react-native-web",
+      "expo-haptics": path.resolve(__dirname, "web-shims/haptics.ts"),
+      "expo-blur": path.resolve(__dirname, "web-shims/blur.tsx"),
+      "@expo/vector-icons": path.resolve(__dirname, "web-shims/vector-icons.tsx"),
+      "expo-linear-gradient": path.resolve(
+        __dirname,
+        "web-shims/linear-gradient.tsx",
+      ),
     },
     extensions: [
       ".web.tsx",

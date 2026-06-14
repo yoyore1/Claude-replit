@@ -17,6 +17,8 @@ export interface ResolvedElement {
   source: SourceLocation;
   componentName: string;
   currentText?: string;
+  /** When set, the tapped text comes from this prop of a component instance. */
+  field?: string;
   currentStyle: EditableStyle;
   rect: { x: number; y: number; width: number; height: number };
 }
@@ -36,6 +38,28 @@ function findTapSourceFiber(fiber: any): any | null {
   while (f) {
     const props = f.memoizedProps || f.pendingProps;
     if (props && props.__tapSource && typeof props.__tapSource === "object") {
+      return f;
+    }
+    f = f.return;
+  }
+  return null;
+}
+
+/**
+ * For prop-driven text: walk up to the nearest component instance that both
+ * supplied this prop (as a string) AND carries __tapSource — i.e. the
+ * <SettingsRow label="…"/> the user authored in their screen.
+ */
+function findOwnerWithProp(fiber: any, field: string): any | null {
+  let f = fiber;
+  while (f) {
+    const props = f.memoizedProps;
+    if (
+      props &&
+      typeof props[field] === "string" &&
+      props.__tapSource &&
+      typeof props.__tapSource === "object"
+    ) {
       return f;
     }
     f = f.return;
@@ -65,6 +89,31 @@ export function resolveElementAtPoint(
 
   const fiber = getFiberFromDom(dom);
   if (!fiber) return null;
+
+  // Prop-driven text (kit components mark it with data-tap-field).
+  const fieldEl = (dom as HTMLElement).closest?.(
+    "[data-tap-field]",
+  ) as HTMLElement | null;
+  if (fieldEl) {
+    const field = fieldEl.getAttribute("data-tap-field") || "";
+    const fEl = getFiberFromDom(fieldEl) ?? fiber;
+    const owner = field ? findOwnerWithProp(fEl, field) : null;
+    if (owner) {
+      const r = fieldEl.getBoundingClientRect();
+      const computed = getComputedStyle(fieldEl);
+      return {
+        source: owner.memoizedProps.__tapSource as SourceLocation,
+        componentName: componentNameOf(owner),
+        currentText: String(owner.memoizedProps[field]),
+        field,
+        currentStyle: {
+          color: rgbToHex(computed.color),
+          backgroundColor: rgbToHex(computed.backgroundColor),
+        },
+        rect: { x: r.left, y: r.top, width: r.width, height: r.height },
+      };
+    }
+  }
 
   const tagged = findTapSourceFiber(fiber);
   if (!tagged) return null;

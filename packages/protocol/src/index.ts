@@ -53,6 +53,12 @@ export interface Selection {
   componentName: string;
   /** Current text content if this is a text-bearing element. */
   currentText?: string;
+  /**
+   * When the tapped text is supplied by a PROP of a component (e.g. a kit
+   * <SettingsRow label="…"/>), this is the prop name to edit instead of a text
+   * node. Set by the runtime via the `tapField` marker.
+   */
+  field?: string;
   /** Flattened, resolved style at tap time. */
   currentStyle: EditableStyle;
 }
@@ -118,14 +124,16 @@ export type IdeToAppMessage =
 
 /* -------------------------- edit plane (IDE -> backend) --------------------- */
 
-export type EditKind = "text" | "color" | "backgroundColor";
+export type EditKind = "text" | "color" | "backgroundColor" | "prop";
 
 /** A request to mutate source code at a tagged location. */
 export interface EditRequest {
   source: SourceLocation;
   kind: EditKind;
-  /** New text (for kind "text") or new color string (for color kinds). */
+  /** New text (kind "text"/"prop") or new color string (color kinds). */
   value: string;
+  /** Required for kind "prop": the JSX attribute name to set (e.g. "label"). */
+  prop?: string;
 }
 
 export interface EditResult {

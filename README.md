@@ -28,11 +28,30 @@ location**, then rewriting the code so the bundler hot-reloads cleanly.
   tapped element's fiber, reads `__tapSource` + current text/colors, and reports it to the
   IDE over WebSocket.
 - **Safe edits** — `@cr/codemod` rewrites the source with `recast` (format-preserving AST),
-  locating the node by `file:line:col`. Text edits hit the `JSXText` node; color edits hit
-  the inline style or follow a `StyleSheet.create` reference. Every result is re-parsed
-  before writing, so the bundler's fast-refresh never breaks.
+  locating the node by `file:line:col`. Text edits hit the `JSXText` node; **prop edits**
+  rewrite a component's string prop (`label`/`title`/…); color edits apply an
+  **element-scoped override** (never touching a shared StyleSheet/token). Every result is
+  re-parsed before writing, so the bundler's fast-refresh never breaks.
 - **Two planes** — selection events travel over WebSocket; source edits travel
   IDE → backend → disk → bundler watcher. Keeping them separate is what protects fast refresh.
+
+## Premium-iOS generation + tap-to-edit on components
+
+Generated apps must feel like native iOS, which is **component-based** (`<SettingsRow
+label="…"/>`, `<AppButton title="…"/>`) with colors from **tokens / `PlatformColor`** — so
+tap-to-edit has to resolve a tapped element back to the *prop in your screen*, not the kit's
+internal `<Text>`.
+
+- **iOS kit** (`apps/template-app/ui/`): `tokens.ts` (Apple type scale, `PlatformColor` with
+  web fallbacks, hairline separators, no elevation) + `Screen`, `AppButton`, `GroupedSection`,
+  `SettingsRow`, `SegmentedControl`, `SearchField`, `Sheet`, `Icon`, and native-API wrappers
+  (`appAlert`/`actionMenu`/`share`). **Web shims** (`web-shims/`) keep `expo-haptics`,
+  `expo-blur`, Ionicons and gradients rendering in the react-native-web preview.
+- **Prop-aware taps**: kit text is marked with `tapField("label")` → a `data-tap-field`
+  attribute. The runtime resolves the tap to the screen-level component instance and edits
+  that prop; plain `<Text>literal</Text>` still edits the text node.
+- **iOS in the prompts**: `apps/backend/src/iosFeel.ts` injects the design rules into the
+  build and AI-edit prompts, plus a fast non-blocking audit for Android-isms.
 
 ## Monorepo layout
 

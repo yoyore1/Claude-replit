@@ -1,98 +1,132 @@
-import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import { Text, View } from "react-native";
+import {
+  AppButton,
+  GroupedSection,
+  Screen,
+  SearchField,
+  SegmentedControl,
+  SettingsRow,
+  Sheet,
+  appAlert,
+  colors,
+  spacing,
+} from "./ui";
 
 /**
- * A small demo screen. Everything here is editable by tapping it in the preview:
- * text content and colors update the source of THIS file via the codemod engine,
- * then the preview hot-reloads (Vite HMR on web / Metro Fast Refresh on device).
- * The tap-to-edit wrapper lives in the entry (web/main.tsx, index.js), not here.
+ * Premium-iOS demo screen built from the kit. Everything is tap-editable:
+ *  - hand-authored Text/View below use literal text + inline colors
+ *    (tap → edit the text node / override the color),
+ *  - kit components (rows, buttons, large title) expose tap-editable PROPS.
  */
 export default function App() {
+  const [tab, setTab] = useState("All");
+  const [wifi, setWifi] = useState(true);
+  const [sheet, setSheet] = useState(false);
+
   return (
-    <View style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content}>
-          <Text style={styles.title}>Good morning</Text>
-          <Text style={styles.subtitle}>You have 3 tasks today</Text>
+    <Screen largeTitle="Settings" background={colors.secondaryBackground}>
+      {/* Hand-authored hero card — literal text + inline colors are tap-editable */}
+      <View style={styles.hero}>
+        <Text style={styles.heroTitle}>Good morning, Jane</Text>
+        <Text style={styles.heroSub}>You have 3 updates today</Text>
+      </View>
 
-          <View style={styles.card}>
-            <Text style={styles.cardLabel}>Focus</Text>
-            <Text style={styles.cardValue}>Ship the preview</Text>
-          </View>
+      <View style={{ marginTop: 14 }}>
+        <SearchField placeholder="Search" />
+      </View>
 
-          <View style={[styles.card, { backgroundColor: "#1e293b" }]}>
-            <Text style={[styles.cardLabel, { color: "#94a3b8" }]}>
-              Up next
-            </Text>
-            <Text style={[styles.cardValue, { color: "#ffffff" }]}>
-              Wire tap to edit
-            </Text>
-          </View>
+      <View style={{ marginTop: 12 }}>
+        <SegmentedControl
+          options={["All", "Favorites", "Recent"]}
+          value={tab}
+          onChange={(o) => setTab(o)}
+        />
+      </View>
 
-          <View style={styles.button}>
-            <Text style={styles.buttonText}>Get started</Text>
-          </View>
+      <GroupedSection header="Account">
+        <SettingsRow
+          icon="person-outline"
+          iconColor="#34C759"
+          label="Apple ID"
+          value="Jane Doe"
+          onPress={() => setSheet(true)}
+        />
+        <SettingsRow
+          icon="notifications-outline"
+          iconColor="#FF3B30"
+          label="Notifications"
+          value="On"
+          onPress={() => {}}
+          isLast
+        />
+      </GroupedSection>
 
-          <Text style={styles.hint}>
-            Tap any text or color in this preview to edit the code.
-          </Text>
-      </ScrollView>
-    </View>
+      <GroupedSection
+        header="Network"
+        footer="Tap a label or value to rename it. Tap the hero text or pick a color to recolor it."
+      >
+        <SettingsRow
+          icon="home-outline"
+          iconColor="#007AFF"
+          label="Wi-Fi"
+          toggle={wifi}
+          onToggle={setWifi}
+        />
+        <SettingsRow
+          icon="settings-outline"
+          iconColor="#8E8E93"
+          label="General"
+          onPress={() => {}}
+          isLast
+        />
+      </GroupedSection>
+
+      <View style={styles.actions}>
+        <AppButton
+          title="Save changes"
+          onPress={() => appAlert("Saved", "Your changes are saved.")}
+        />
+        <AppButton
+          title="Sign out"
+          variant="destructive"
+          onPress={() =>
+            appAlert("Sign out?", "You can sign back in anytime.", [
+              { text: "Cancel", style: "cancel" },
+              { text: "Sign out", style: "destructive" },
+            ])
+          }
+        />
+      </View>
+
+      <Sheet visible={sheet} onClose={() => setSheet(false)} title="Apple ID">
+        <SettingsRow label="Name" value="Jane Doe" isLast />
+      </Sheet>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#0f172a",
-  },
-  content: {
-    padding: 24,
-    gap: 16,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: "#f8fafc",
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#94a3b8",
-    marginBottom: 8,
-  },
-  card: {
-    backgroundColor: "#7c3aed",
-    borderRadius: 16,
-    padding: 20,
-  },
-  cardLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#ede9fe",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  cardValue: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#ffffff",
-    marginTop: 6,
-  },
-  button: {
-    backgroundColor: "#22c55e",
-    borderRadius: 999,
-    paddingVertical: 16,
-    alignItems: "center",
+const styles = {
+  hero: {
+    marginHorizontal: spacing.h,
     marginTop: 8,
+    padding: 20,
+    borderRadius: 16,
+    backgroundColor: "#0A84FF",
   },
-  buttonText: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#052e16",
+  heroTitle: {
+    fontSize: 22,
+    fontWeight: "700" as const,
+    color: "#FFFFFF",
   },
-  hint: {
-    fontSize: 13,
-    color: "#64748b",
-    textAlign: "center",
-    marginTop: 12,
+  heroSub: {
+    fontSize: 15,
+    color: "#FFFFFFCC",
+    marginTop: 4,
   },
-});
+  actions: {
+    paddingHorizontal: spacing.h,
+    paddingTop: 20,
+    gap: 12,
+  },
+};

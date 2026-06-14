@@ -49,6 +49,7 @@ export function InlineEditor({
           <div className="tag">{selection.componentName}</div>
           <div className="loc">
             {src.file}:{src.line}
+            {selection.field ? ` · ${selection.field}` : ""}
           </div>
         </div>
         <button className="x" onClick={onClose}>
@@ -56,29 +57,30 @@ export function InlineEditor({
         </button>
       </div>
 
-      {selection.currentText !== undefined && (
-        <label className="field">
-          <span>Text</span>
-          <div className="row">
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter")
-                  onApply({ source: src, kind: "text", value: text });
-              }}
-              placeholder="Type new text…"
-            />
-            <button
-              onClick={() =>
-                onApply({ source: src, kind: "text", value: text })
-              }
-            >
-              Apply
-            </button>
-          </div>
-        </label>
-      )}
+      {selection.currentText !== undefined &&
+        (() => {
+          // Prop-driven text edits the component's prop; plain text edits the node.
+          const applyText = () =>
+            onApply(
+              selection.field
+                ? { source: src, kind: "prop", prop: selection.field, value: text }
+                : { source: src, kind: "text", value: text },
+            );
+          return (
+            <label className="field">
+              <span>{selection.field ? `Text (${selection.field})` : "Text"}</span>
+              <div className="row">
+                <input
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && applyText()}
+                  placeholder="Type new text…"
+                />
+                <button onClick={applyText}>Apply</button>
+              </div>
+            </label>
+          );
+        })()}
 
       <label className="field">
         <span>Text color</span>

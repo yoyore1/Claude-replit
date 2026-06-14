@@ -2,11 +2,13 @@ import { parse, print } from "./parse.js";
 import { locateJsxElement } from "./locateNode.js";
 import { applyTextEdit } from "./applyTextEdit.js";
 import { applyStyleEdit } from "./applyStyleEdit.js";
+import { applyPropEdit } from "./applyPropEdit.js";
 import type { EditRequest } from "@cr/protocol";
 
 export { locateJsxElement, jsxName } from "./locateNode.js";
 export { applyTextEdit } from "./applyTextEdit.js";
 export { applyStyleEdit } from "./applyStyleEdit.js";
+export { applyPropEdit } from "./applyPropEdit.js";
 export { parse, print } from "./parse.js";
 
 export interface ApplyEditOutcome {
@@ -42,9 +44,12 @@ export function applyEdit(code: string, req: EditRequest): ApplyEditOutcome {
   try {
     if (req.kind === "text") {
       applyTextEdit(path, req.value);
+    } else if (req.kind === "prop") {
+      if (!req.prop) return { ok: false, error: "prop name required" };
+      applyPropEdit(path, req.prop, req.value);
     } else {
-      // "color" | "backgroundColor"
-      applyStyleEdit(ast, path, req.kind, req.value);
+      // "color" | "backgroundColor" — element-scoped override.
+      applyStyleEdit(path, req.kind, req.value);
     }
   } catch (e: any) {
     return { ok: false, error: e.message };

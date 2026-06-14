@@ -3,6 +3,7 @@ import { parse } from "@cr/codemod";
 import type { SourceLocation } from "@cr/protocol";
 import { readFile, writeFile } from "./fileApi.js";
 import { extractJson } from "./interview.js";
+import { IOS_FEEL_PROMPT } from "./iosFeel.js";
 
 export interface AiEditResult {
   ok: boolean;
@@ -18,8 +19,11 @@ You are given the full file and (optionally) the line the user tapped.
 Return ONLY a JSON object: {"content": "<the FULL updated file>"}.
 Rules:
 - Make the smallest change that satisfies the instruction. Preserve everything else exactly.
-- Keep all existing imports, including TapEditProvider, and keep StyleSheet usage.
-- Output valid TypeScript TSX only. No markdown, no commentary.`,
+- Keep all existing imports and kit usage; keep StyleSheet usage.
+- Output valid TypeScript TSX only. No markdown, no commentary.
+- Stay premium-iOS and tap-to-edit-friendly per the rules below.
+
+${IOS_FEEL_PROMPT}`,
 };
 
 /**

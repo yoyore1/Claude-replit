@@ -2,11 +2,14 @@ import { chat, builderConfig, type ChatMessage } from "@cr/llm";
 import { parse } from "@cr/codemod";
 import { writeFile } from "./fileApi.js";
 import { extractJson, type AppSpec } from "./interview.js";
+import { IOS_FEEL_PROMPT, auditIosFeel } from "./iosFeel.js";
 
 export interface BuildResult {
   ok: boolean;
   files?: string[];
   error?: string;
+  /** Non-fatal iOS-feel audit notes (Android-isms etc.). */
+  warnings?: string[];
   /** The raw model output, kept for debugging when parsing fails. */
   raw?: string;
 }
@@ -25,8 +28,10 @@ Hard requirements for App.tsx:
 - export default function App() returning the screen UI. (The tap-to-edit wrapper is
   added by the host automatically — do NOT import or use TapEditProvider yourself.)
 - ONLY use these RN components: View, Text, ScrollView, Pressable, Image. Images use {{ uri: "https://..." }}.
-- No external packages, navigation libraries, or native modules. Simulate multiple screens with useState + conditional rendering or simple tab buttons.
+- No external packages or native modules beyond the kit below. Simulate multiple screens with useState + conditional rendering or simple tab buttons.
 - Valid TypeScript TSX that compiles. Self-contained and visually polished.
+
+${IOS_FEEL_PROMPT}
 
 TAP-TO-EDIT RULES (critical — follow exactly so editing works):
 - Put visible text as PLAIN literal text directly inside <Text>Hello</Text>. Do NOT build label
@@ -104,5 +109,7 @@ export async function buildApp(input: {
   if (written.length === 0) {
     return { ok: false, error: "No files were generated", raw };
   }
-  return { ok: true, files: written };
+  // Non-fatal audit (no rebuild): surface any Android-isms that slipped through.
+  const warnings = auditIosFeel(appSrc);
+  return { ok: true, files: written, warnings };
 }
