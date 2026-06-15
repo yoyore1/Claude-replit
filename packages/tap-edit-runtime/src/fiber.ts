@@ -109,6 +109,8 @@ export function resolveElementAtPoint(
         currentStyle: {
           color: rgbToHex(computed.color),
           backgroundColor: rgbToHex(computed.backgroundColor),
+          fontFamily: fontFamilyOption(computed.fontFamily),
+          fontWeight: fontWeightOption(computed.fontWeight),
         },
         rect: { x: r.left, y: r.top, width: r.width, height: r.height },
       };
@@ -166,9 +168,26 @@ export function resolveElementAtPoint(
     currentStyle: {
       color: rgbToHex(computed.color),
       backgroundColor: rgbToHex(computed.backgroundColor),
+      fontFamily: fontFamilyOption(computed.fontFamily),
+      fontWeight: fontWeightOption(computed.fontWeight),
     },
     rect: { x: r.left, y: r.top, width: r.width, height: r.height },
   };
+}
+
+/** Collapse a computed CSS font stack into one of the menu's coarse options. */
+function fontFamilyOption(family: string): string {
+  const f = (family || "").toLowerCase();
+  if (/courier|mono|menlo|consolas/.test(f)) return "Courier New";
+  if (/georgia|times|serif/.test(f) && !/sans/.test(f)) return "Georgia";
+  return "System";
+}
+
+/** Collapse a computed font weight into "bold" / "normal". */
+function fontWeightOption(weight: string): string {
+  if (weight === "bold" || weight === "bolder") return "bold";
+  const n = parseInt(weight, 10);
+  return Number.isFinite(n) && n >= 600 ? "bold" : "normal";
 }
 
 function nearestHostDom(fiber: any): HTMLElement | null {

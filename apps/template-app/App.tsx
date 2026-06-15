@@ -2,20 +2,20 @@ import React, { useState } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Icon, colors } from "./ui";
-import Shop from "./src/screens/Shop";
-import ProductDetail from "./src/screens/ProductDetail";
-import Cart from "./src/screens/Cart";
-import Checkout from "./src/screens/Checkout";
-import Orders from "./src/screens/Orders";
-import Profile from "./src/screens/Profile";
+import MealPlan from "./src/screens/MealPlan";
+import MealDetail from "./src/screens/MealDetail";
+import GroceryList from "./src/screens/GroceryList";
+import RecipeIdeas from "./src/screens/RecipeIdeas";
+import RecipeDetail from "./src/screens/RecipeDetail";
+import FamilySettings from "./src/screens/FamilySettings";
 
 // Pin the UI kit's tint to this app's accent color.
-colors.tint = "#C8431D";
+colors.tint = "#FF6B35";
 
-const SCREENS = { Shop, ProductDetail, Cart, Checkout, Orders, Profile };
+const SCREENS = { MealPlan, MealDetail, GroceryList, RecipeIdeas, RecipeDetail, FamilySettings };
 
 function AppInner() {
-  const [tab, setTab] = useState("Shop");
+  const [tab, setTab] = useState("MealPlan");
   const [stack, setStack] = useState([]);
 
   const navigate = (screen, params) =>
@@ -24,7 +24,7 @@ function AppInner() {
 
   const top = stack.length ? stack[stack.length - 1] : null;
   const activeId = top ? top.screen : tab;
-  const Active = SCREENS[activeId] || SCREENS["Shop"];
+  const Active = SCREENS[activeId] || SCREENS["MealPlan"];
 
   return (
     <SafeAreaView style={styles.root} edges={["top"]}>
@@ -39,22 +39,22 @@ function AppInner() {
       </View>
       {stack.length === 0 ? (
         <SafeAreaView edges={["bottom"]} style={styles.tabBar}>
-          <Pressable style={styles.tabItem} onPress={() => { setStack([]); setTab("Shop"); }}>
-            <Icon name="home" size={24} style={tab === "Shop" ? styles.tabIconOn : styles.tabIcon} />
-            <Text style={tab === "Shop" ? styles.tabLabelOn : styles.tabLabel}>Shop</Text>
-          </Pressable>
-          <Pressable style={styles.tabItem} onPress={() => { setStack([]); setTab("Cart"); }}>
-            <Icon name="cart" size={24} style={tab === "Cart" ? styles.tabIconOn : styles.tabIcon} />
-            <Text style={tab === "Cart" ? styles.tabLabelOn : styles.tabLabel}>Cart</Text>
-          </Pressable>
-          <Pressable style={styles.tabItem} onPress={() => { setStack([]); setTab("Orders"); }}>
-            <Icon name="list" size={24} style={tab === "Orders" ? styles.tabIconOn : styles.tabIcon} />
-            <Text style={tab === "Orders" ? styles.tabLabelOn : styles.tabLabel}>Orders</Text>
-          </Pressable>
-          <Pressable style={styles.tabItem} onPress={() => { setStack([]); setTab("Profile"); }}>
-            <Icon name="person" size={24} style={tab === "Profile" ? styles.tabIconOn : styles.tabIcon} />
-            <Text style={tab === "Profile" ? styles.tabLabelOn : styles.tabLabel}>Profile</Text>
-          </Pressable>
+        <Pressable style={styles.tabItem} onPress={() => { setStack([]); setTab("MealPlan"); }}>
+          <Icon name="calendar" size={24} style={tab === "MealPlan" ? styles.tabIconOn : styles.tabIcon} />
+          <Text style={tab === "MealPlan" ? styles.tabLabelOn : styles.tabLabel}>This</Text>
+        </Pressable>
+        <Pressable style={styles.tabItem} onPress={() => { setStack([]); setTab("GroceryList"); }}>
+          <Icon name="cart" size={24} style={tab === "GroceryList" ? styles.tabIconOn : styles.tabIcon} />
+          <Text style={tab === "GroceryList" ? styles.tabLabelOn : styles.tabLabel}>Grocery</Text>
+        </Pressable>
+        <Pressable style={styles.tabItem} onPress={() => { setStack([]); setTab("RecipeIdeas"); }}>
+          <Icon name="restaurant" size={24} style={tab === "RecipeIdeas" ? styles.tabIconOn : styles.tabIcon} />
+          <Text style={tab === "RecipeIdeas" ? styles.tabLabelOn : styles.tabLabel}>Recipe</Text>
+        </Pressable>
+        <Pressable style={styles.tabItem} onPress={() => { setStack([]); setTab("FamilySettings"); }}>
+          <Icon name="settings" size={24} style={tab === "FamilySettings" ? styles.tabIconOn : styles.tabIcon} />
+          <Text style={tab === "FamilySettings" ? styles.tabLabelOn : styles.tabLabel}>Family</Text>
+        </Pressable>
         </SafeAreaView>
       ) : null}
     </SafeAreaView>
@@ -70,7 +70,7 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#FBF9F5" },
+  root: { flex: 1, backgroundColor: "#FFF3E0" },
   content: { flex: 1 },
   backRow: {
     flexDirection: "row",
@@ -79,8 +79,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     minHeight: 44,
   },
-  backIcon: { color: "#C8431D" },
-  backText: { fontSize: 17, color: "#C8431D", marginLeft: 2 },
+  backIcon: { color: "#FF6B35" },
+  backText: { fontSize: 17, color: "#FF6B35", marginLeft: 2 },
   tabBar: {
     flexDirection: "row",
     backgroundColor: "#FFFFFF",
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   tabIcon: { color: "#8E8E93" },
-  tabIconOn: { color: "#C8431D" },
+  tabIconOn: { color: "#FF6B35" },
   tabLabel: { fontSize: 10, color: "#8E8E93", marginTop: 2, fontWeight: "500" },
-  tabLabelOn: { fontSize: 10, color: "#C8431D", marginTop: 2, fontWeight: "600" },
+  tabLabelOn: { fontSize: 10, color: "#FF6B35", marginTop: 2, fontWeight: "600" },
 });

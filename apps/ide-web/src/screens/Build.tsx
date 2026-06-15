@@ -54,7 +54,7 @@ export function Build({
   const [project, setProject] = useState<Project | null>(null);
   const [tab, setTab] = useState<"build" | "brainstorm">("build");
   const [input, setInput] = useState("");
-  const [editMode, setEditMode] = useState(true);
+  const [editMode, setEditMode] = useState(false);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [status, setStatus] = useState("");
   const [showCode, setShowCode] = useState(false);
@@ -142,6 +142,8 @@ export function Build({
   };
   useEffect(() => {
     sendToApp({ type: editMode ? "enter-edit-mode" : "exit-edit-mode" });
+    // Leaving edit mode dismisses any open editor popover.
+    if (!editMode) setSelection(null);
   }, [editMode]);
 
   useEffect(() => {
@@ -250,16 +252,6 @@ export function Build({
           {building && bp > 0 ? ` · ${bp}%` : ""}
         </span>
         <div className="grow" />
-        <button className="hbtn" disabled={history.cursor < 0} onClick={doUndo}>
-          ↶ Undo
-        </button>
-        <button
-          className="hbtn"
-          disabled={history.cursor >= history.entries.length - 1}
-          onClick={doRedo}
-        >
-          ↷ Redo
-        </button>
         <button className="btn-ghost" onClick={toggleCode}>
           {showCode ? "Hide code" : "‹ › Code"}
         </button>
@@ -343,17 +335,45 @@ export function Build({
 
         {/* ── Center: phone preview or code ── */}
         <main className="build-center">
-          {/* Agent status line */}
-          <div className={`agent-line${!building && st === "running" ? " done" : ""}`}>
-            {building && <span className="spin" />}
-            {building
-              ? `Building your app… ${bp}%`
-              : st === "running"
-                ? "Your app is ready."
-                : st === "sleeping"
-                  ? "App is paused."
-                  : "Tap the button below to start your build."}
-          </div>
+          {/* Edit toolbar — sits on top of the phone: undo/redo + tap-to-edit */}
+          {showPreview && !showCode && (
+            <div className="phone-toolbar">
+              <button
+                className="ptbtn"
+                disabled={history.cursor < 0}
+                onClick={doUndo}
+              >
+                ↶ Undo
+              </button>
+              <button
+                className="ptbtn"
+                disabled={history.cursor >= history.entries.length - 1}
+                onClick={doRedo}
+              >
+                ↷ Redo
+              </button>
+              <button
+                className={"pt-toggle" + (editMode ? " on" : "")}
+                onClick={() => setEditMode((m) => !m)}
+              >
+                {editMode ? "Done editing" : "Tap to edit"}
+              </button>
+            </div>
+          )}
+
+          {/* Agent status line — while building or before the app is live */}
+          {(building || !showPreview) && (
+            <div className={`agent-line${!building && st === "running" ? " done" : ""}`}>
+              {building && <span className="spin" />}
+              {building
+                ? `Building your app… ${bp}%`
+                : st === "running"
+                  ? "Your app is ready."
+                  : st === "sleeping"
+                    ? "App is paused."
+                    : "Tap the button below to start your build."}
+            </div>
+          )}
 
           {showCode ? (
             <div className="code-panel">
@@ -373,10 +393,20 @@ export function Build({
               </div>
             </div>
           ) : showPreview ? (
-            <PreviewPane
-              editMode={editMode}
-              onToggleEditMode={() => setEditMode((m) => !m)}
-            />
+            <>
+              <PreviewPane />
+              {editMode && selection && (
+                <div className="editor-pop">
+                  <InlineEditor
+                    selection={selection}
+                    onApply={onApply}
+                    onAiEdit={onAiEdit}
+                    onClose={() => setSelection(null)}
+                    status={status}
+                  />
+                </div>
+              )}
+            </>
           ) : building ? (
             <div className="phone-empty-state">
               <div className="build-progress-ring" aria-hidden>
@@ -405,14 +435,6 @@ export function Build({
 
         {/* ── Right: side panels ── */}
         <aside className="build-right">
-          <InlineEditor
-            selection={selection}
-            onApply={onApply}
-            onAiEdit={onAiEdit}
-            onClose={() => setSelection(null)}
-            status={status}
-          />
-
           {/* QR / On your phone */}
           <div className="side-panel">
             <div className="side-panel-head">

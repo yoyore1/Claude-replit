@@ -57,7 +57,7 @@ export function Home({ go }: { go: Go }) {
         setChips((prev) => pickThree(prev));
         setChipsIn(true); // fade new ones in
       }, 420); // match the CSS opacity transition
-    }, 2500);
+    }, 3200);
     return () => {
       clearInterval(t);
       clearTimeout(swapT);

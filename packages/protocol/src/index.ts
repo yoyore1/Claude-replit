@@ -41,6 +41,10 @@ export function parseElementId(id: ElementId): SourceLocation {
 export interface EditableStyle {
   color?: string;
   backgroundColor?: string;
+  /** A coarse font option: "System" | "Georgia" | "Courier New". */
+  fontFamily?: string;
+  /** "bold" | "normal". */
+  fontWeight?: string;
   /** Anything else we read but do not yet edit. */
   [key: string]: string | number | undefined;
 }
@@ -124,7 +128,13 @@ export type IdeToAppMessage =
 
 /* -------------------------- edit plane (IDE -> backend) --------------------- */
 
-export type EditKind = "text" | "color" | "backgroundColor" | "prop";
+export type EditKind =
+  | "text"
+  | "color"
+  | "backgroundColor"
+  | "fontFamily"
+  | "fontWeight"
+  | "prop";
 
 /** A request to mutate source code at a tagged location. */
 export interface EditRequest {

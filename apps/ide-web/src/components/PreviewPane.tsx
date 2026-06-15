@@ -1,50 +1,27 @@
-import React, { useRef } from "react";
+import React from "react";
 import { PREVIEW_URL } from "../config.js";
 
 /**
  * The phone preview: an iframe pointing at the Expo web (Metro) dev server,
- * framed like a device. Tap-to-edit happens inside the iframe via the runtime;
- * this component only frames it and offers a manual reload.
+ * framed like a real iPhone (titanium body, Dynamic Island, 3D side buttons).
+ * Tap-to-edit happens inside the iframe via the runtime; the edit toggle lives in
+ * the toolbar above the phone (see Build.tsx).
  */
-export function PreviewPane({
-  editMode,
-  onToggleEditMode,
-}: {
-  editMode: boolean;
-  onToggleEditMode: () => void;
-}) {
-  const ref = useRef<HTMLIFrameElement>(null);
-
+export function PreviewPane() {
   return (
     <div className="preview">
-      <div className="preview-bar">
-        <span className="preview-title">Phone preview</span>
-        <div className="preview-actions">
-          <button
-            className={"toggle" + (editMode ? " on" : "")}
-            onClick={onToggleEditMode}
-            title="Toggle tap-to-edit in the preview"
-          >
-            {editMode ? "✓ Tap to edit" : "Tap to edit"}
-          </button>
-          <button
-            className="reload"
-            onClick={() => {
-              if (ref.current) ref.current.src = ref.current.src;
-            }}
-            title="Reload preview"
-          >
-            ⟳
-          </button>
-        </div>
-      </div>
       <div className="phone">
-        <iframe
-          ref={ref}
-          className="phone-screen"
-          src={PREVIEW_URL}
-          title="preview"
-        />
+        <div className="phone-device">
+          {/* 3D side buttons */}
+          <span className="phone-btn phone-btn-action" />
+          <span className="phone-btn phone-btn-volup" />
+          <span className="phone-btn phone-btn-voldown" />
+          <span className="phone-btn phone-btn-power" />
+          <div className="phone-bezel">
+            <iframe className="phone-screen" src={PREVIEW_URL} title="preview" />
+            <div className="phone-island" />
+          </div>
+        </div>
       </div>
     </div>
   );

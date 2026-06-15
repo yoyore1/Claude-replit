@@ -322,14 +322,16 @@ app.post<{ Body: { source: SourceLocation; instruction: string } }>(
 
 const server = await app.listen({ port: PORT, host: HOST });
 
-// One HTTP server, two WS planes: the tap-to-edit relay Hub (/ and /ide) and the
-// per-project funnel socket (/ws). Route raw upgrades by path.
+// One HTTP server, two WS planes: the tap-to-edit relay Hub (/, /ide and /app)
+// and the per-project funnel socket (/ws). Route raw upgrades by path. The
+// preview runtime connects to /app and the IDE to /ide; the Hub tells them apart
+// by whether the path starts with /ide.
 const hub = new Hub();
 const projectSocket = new ProjectSocket();
 app.server.on("upgrade", (req, socket, head) => {
   const pathname = new URL(req.url || "", "http://localhost").pathname;
   if (pathname === "/ws") projectSocket.handleUpgrade(req, socket, head);
-  else if (pathname === "/ide" || pathname === "/")
+  else if (pathname === "/ide" || pathname === "/app" || pathname === "/")
     hub.handleUpgrade(req, socket, head);
   else socket.destroy();
 });

@@ -48,13 +48,17 @@ export function applyEdit(code: string, req: EditRequest): ApplyEditOutcome {
       if (!req.prop) return { ok: false, error: "prop name required" };
       applyPropEdit(path, req.prop, req.value);
     } else {
-      // "color" | "backgroundColor" — element-scoped override.
-      // A text-color edit on a kit component whose text comes from a prop
-      // (field set) is scoped to a per-field style attr (`${field}Style`) so a
-      // row's label and value recolor independently; backgroundColor always
-      // targets the element's own `style` (the box). Plain elements use `style`.
+      // "color" | "fontFamily" | "fontWeight" | "backgroundColor" — element-
+      // scoped style override. The text-affecting edits on a kit component whose
+      // text comes from a prop (field set) are scoped to a per-field style attr
+      // (`${field}Style`) so a row's label and value style independently;
+      // backgroundColor always targets the element's own `style` (the box).
+      const textStyle =
+        req.kind === "color" ||
+        req.kind === "fontFamily" ||
+        req.kind === "fontWeight";
       const styleAttr =
-        req.kind === "color" && req.field ? `${req.field}Style` : "style";
+        textStyle && req.field ? `${req.field}Style` : "style";
       applyStyleEdit(path, styleAttr, req.kind, req.value);
     }
   } catch (e: any) {

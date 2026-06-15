@@ -118,11 +118,11 @@ function fromEnv(prefix: string, defaults: Partial<LLMConfig>): LLMConfig {
   };
 }
 
-/** Interviewer brain (Qwen / Alibaba DashScope OpenAI-compatible mode). */
+/** Interviewer brain (DeepSeek via Fireworks AI). */
 export function interviewerConfig(): LLMConfig {
   return fromEnv("QWEN", {
-    baseUrl: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-    model: "qwen-plus",
+    baseUrl: "https://api.fireworks.ai/inference/v1",
+    model: "accounts/fireworks/models/deepseek-v4-flash",
   });
 }
 

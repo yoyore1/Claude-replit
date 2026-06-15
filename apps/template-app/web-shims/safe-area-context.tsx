@@ -12,8 +12,14 @@ export const SafeAreaInsetsContext = React.createContext({
   left: 0,
 });
 
-export function SafeAreaProvider({ children, ...rest }: any) {
-  return <View {...rest}>{children}</View>;
+export function SafeAreaProvider({ children, style, ...rest }: any) {
+  // Must fill its parent (flex:1) like the real provider, otherwise the RN view
+  // tree is sized by content and the bottom tab bar gets pushed off-screen.
+  return (
+    <View style={[{ flex: 1 }, style]} {...rest}>
+      {children}
+    </View>
+  );
 }
 
 export function SafeAreaView({ children, ...rest }: any) {

@@ -174,17 +174,96 @@ body {
   flex: 1;
   display: grid;
   place-items: center;
-  padding: 16px;
-  overflow: auto;
+  padding: 24px;
+  overflow: hidden;
   background: radial-gradient(circle at 50% 0%, #ffffff, var(--panel-2));
 }
+
+/* ── Realistic iPhone body: titanium rail, black bezel, Dynamic Island ── */
+.phone-device {
+  position: relative;
+  padding: 4px; /* the bright titanium rail */
+  border-radius: 60px;
+  background: linear-gradient(
+    135deg,
+    #e6e6eb 0%,
+    #a9a9b2 22%,
+    #d2d2d9 48%,
+    #8f8f99 72%,
+    #dadae0 100%
+  );
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.7),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.25),
+    0 30px 70px rgba(0, 0, 0, 0.35),
+    0 8px 20px rgba(0, 0, 0, 0.22);
+}
+.phone-bezel {
+  position: relative;
+  padding: 10px;
+  border-radius: 56px;
+  background: #050507; /* black bezel between rail and screen */
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 0 8px rgba(0, 0, 0, 0.9);
+}
 .phone-screen {
-  width: 320px;
-  height: 660px;
-  border: 10px solid #0b0e13;
-  border-radius: 36px;
+  display: block;
+  width: 300px;
+  height: 636px;
+  border: none;
+  border-radius: 46px;
   background: #000;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+.phone-island {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 96px;
+  height: 28px;
+  background: #000;
+  border-radius: 16px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* 3D side buttons — protrude from the rail with a metallic sheen + shadow */
+.phone-btn {
+  position: absolute;
+  z-index: 0;
+}
+.phone-btn-action,
+.phone-btn-volup,
+.phone-btn-voldown {
+  left: -3px;
+  width: 4px;
+  border-radius: 3px 0 0 3px;
+  background: linear-gradient(90deg, #8d8d96 0%, #c8c8cf 100%);
+  box-shadow: -1px 0 2px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+.phone-btn-action {
+  top: 132px;
+  height: 30px;
+}
+.phone-btn-volup {
+  top: 190px;
+  height: 54px;
+}
+.phone-btn-voldown {
+  top: 252px;
+  height: 54px;
+}
+.phone-btn-power {
+  right: -3px;
+  top: 200px;
+  width: 4px;
+  height: 92px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(90deg, #c8c8cf 0%, #8d8d96 100%);
+  box-shadow: 1px 0 2px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
 .inspector {
@@ -1626,9 +1705,164 @@ span.muted.small {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  position: relative; /* anchor for the floating tap-to-edit popover */
 }
 .build-center .preview {
   flex: 1;
+}
+
+/* Centered toolbar on top of the phone: undo / redo + tap-to-edit toggle. */
+.phone-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 0;
+}
+.ptbtn,
+.pt-toggle {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 9px;
+  padding: 6px 13px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.ptbtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.pt-toggle {
+  font-weight: 600;
+}
+.pt-toggle.on {
+  background: var(--ink, #1c1c1e);
+  color: #fff;
+  border-color: transparent;
+}
+
+/* Floating tap-to-edit menu that appears beside the phone on tap. */
+.editor-pop {
+  position: absolute;
+  top: 50%;
+  left: 28px;
+  transform: translateY(-50%);
+  width: 270px;
+  z-index: 30;
+  animation: editorPopIn 0.14s ease-out;
+}
+@keyframes editorPopIn {
+  from { opacity: 0; transform: translateY(-50%) scale(0.97); }
+  to { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+.edit-card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  gap: 13px;
+  background: var(--panel);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.2);
+}
+.edit-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.edit-card-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+}
+.edit-card-cancel {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+}
+.edit-card-cancel:hover {
+  color: var(--text);
+}
+.edit-card .field > span {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.edit-select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+.seg-toggle {
+  display: flex;
+  gap: 6px;
+}
+.seg-toggle button {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 0;
+  font-size: 13px;
+  cursor: pointer;
+}
+.seg-toggle button.on {
+  background: var(--ink, #1c1c1e);
+  color: #fff;
+  border-color: transparent;
+}
+.swatch-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.swatch-row input[type="color"] {
+  flex: 1;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  cursor: pointer;
+}
+.swatch-hex {
+  width: 92px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 13px;
+  font-family: ui-monospace, monospace;
+}
+.edit-apply {
+  width: 100%;
+  background: var(--ink, #1c1c1e);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 11px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.edit-apply:hover {
+  opacity: 0.92;
+}
+.edit-hint {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.4;
+  text-align: center;
 }
 
 /* Agent status line above phone */

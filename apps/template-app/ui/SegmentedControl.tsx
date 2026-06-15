@@ -4,6 +4,8 @@ import * as Haptics from "expo-haptics";
 import { colors, type } from "./tokens";
 import { boxBg, textColor } from "./overrides";
 
+type SegOption = string | { label?: string; value?: string | number };
+
 /** iOS pill-in-track segmented control for switching views. */
 export function SegmentedControl({
   options = [],
@@ -11,9 +13,10 @@ export function SegmentedControl({
   onChange,
   style,
 }: {
-  options?: string[];
+  /** Plain strings, or `{ label, value }` objects — both are accepted. */
+  options?: SegOption[];
   value?: string | number;
-  onChange?: (option: string, index: number) => void;
+  onChange?: (option: string | number, index: number) => void;
   /** Per-instance tap-to-edit overrides: `style.backgroundColor` tints the
    * track, `style.color` recolors the segment labels. */
   style?: any;
@@ -22,18 +25,23 @@ export function SegmentedControl({
   return (
     <View style={[styles.track, boxBg(style)]}>
       {options.map((opt, i) => {
-        const active = value === opt || value === i;
+        // Tolerate both string options and { label, value } objects, since the
+        // generated code uses either. Rendering the raw object would crash.
+        const isObj = opt !== null && typeof opt === "object";
+        const label = isObj ? String((opt as any).label ?? (opt as any).value ?? "") : String(opt);
+        const optValue = isObj ? (opt as any).value ?? (opt as any).label : opt;
+        const active = value === optValue || value === i;
         return (
           <Pressable
             key={i}
             onPress={() => {
               Haptics.selectionAsync();
-              onChange?.(opt, i);
+              onChange?.(optValue as any, i);
             }}
             style={[styles.seg, active && styles.segActive]}
           >
             <Text style={[styles.text, active && styles.textActive, segText]}>
-              {opt}
+              {label}
             </Text>
           </Pressable>
         );

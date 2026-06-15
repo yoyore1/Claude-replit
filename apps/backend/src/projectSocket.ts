@@ -25,23 +25,44 @@ import { aiEdit } from "./aiEdit.js";
  * tap-to-edit plane stays on the separate `/ide` Hub + REST `/api/edit`.
  */
 
+// Virtual / VPN adapters whose IPs a phone on the Wi-Fi can't reach. We must
+// pick the real LAN address (e.g. the Wi-Fi/Ethernet 192.168.x.x), not a VPN
+// (NordLynx/OpenVPN), WSL, or VM adapter — otherwise Expo Go times out.
+const VIRTUAL_IF =
+  /(WSL|vEthernet|VirtualBox|VMware|Hyper-V|NordLynx|OpenVPN|TAP|Tunnel|Loopback|Hamachi|ZeroTier|Radmin|utun|tailscale)/i;
+
 function getLanIp(): string | null {
-  for (const nets of Object.values(networkInterfaces())) {
+  // Explicit override always wins (set EXPO_HOST=192.168.x.x if detection fails).
+  if (process.env.EXPO_HOST) return process.env.EXPO_HOST;
+  const candidates: { addr: string; score: number }[] = [];
+  for (const [name, nets] of Object.entries(networkInterfaces())) {
     for (const net of nets ?? []) {
-      if (net.family === "IPv4" && !net.internal) return net.address;
+      if (net.family !== "IPv4" || net.internal) continue;
+      if (net.address.startsWith("169.254.")) continue; // link-local (no network)
+      let score = 0;
+      if (net.address.startsWith("192.168.")) score += 100; // typical home LAN
+      else if (/^172\.(1[6-9]|2\d|3[01])\./.test(net.address)) score += 50;
+      else if (net.address.startsWith("10.")) score += 30;
+      if (VIRTUAL_IF.test(name)) score -= 80; // strongly deprioritize VPN/VM/WSL
+      candidates.push({ addr: net.address, score });
     }
   }
-  return null;
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates[0]?.addr ?? null;
 }
 
 const LAN_IP = getLanIp();
-const EXPO_PORT = process.env.EXPO_PORT || "8081";
+// The web preview (react-native-web via Vite) and the Expo/Metro dev server for
+// real devices live on different ports — Metro defaults to 8082 because Vite
+// holds 8081.
+const WEB_PORT = process.env.PREVIEW_WEB_PORT || "8081";
+const METRO_PORT = process.env.METRO_PORT || process.env.EXPO_PORT || "8082";
 const PREVIEW_WEB_URL =
   process.env.PREVIEW_WEB_URL ||
-  (LAN_IP ? `http://${LAN_IP}:${EXPO_PORT}` : `http://localhost:${EXPO_PORT}`);
+  (LAN_IP ? `http://${LAN_IP}:${WEB_PORT}` : `http://localhost:${WEB_PORT}`);
 const EXPO_URL =
   process.env.EXPO_URL ||
-  (LAN_IP ? `exp://${LAN_IP}:${EXPO_PORT}` : "");
+  (LAN_IP ? `exp://${LAN_IP}:${METRO_PORT}` : "");
 
 const BRAINSTORM_SYSTEM: ChatMessage = {
   role: "system",

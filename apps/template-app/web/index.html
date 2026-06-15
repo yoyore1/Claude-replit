@@ -13,6 +13,26 @@
       }
       #root {
         display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      /* Bound the RN view tree to the viewport so the screen's ScrollView
+         scrolls internally and the bottom tab bar stays pinned (matching iOS).
+         Mirrors Yoga's default min-height:0; only affects elements without an
+         explicit inline min-height, so 44pt touch targets etc. are preserved. */
+      #root * {
+        min-height: 0;
+      }
+      /* Hide scrollbars in the preview so it reads like a real phone screen
+         (iOS overlays a transient bar; browsers show a persistent one). */
+      * {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+      *::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+        display: none;
       }
     </style>
   </head>

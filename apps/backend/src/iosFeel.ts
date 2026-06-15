@@ -54,6 +54,10 @@ FILE SHAPE (exactly):
 - export default function <ScreenId>({ navigate, goBack, params }) { ... }
 - The component's ROOT must be <Screen largeTitle="...">. Screen already scrolls — do NOT wrap it in your own ScrollView.
 
+ICONS — use the <Icon name="..."/> kit piece with VALID Ionicons names only:
+- Good: chevron-forward, chevron-back, add, remove, checkmark, checkmark-circle, close, search, ellipsis-horizontal, heart, heart-outline, star, star-outline, cart, calendar, restaurant, settings, person, people, notifications, mail, cash, card, trash, create, time, location, sparkles.
+- NEVER use SF Symbols (e.g. "fork.knife.circle.fill"), Material names ("md-*"), or web names ("chevron-left", "chevron-right", "plus", "minus", "bell", "dollar", "trash-2"). Prefer the "-outline" variant for line style.
+
 NAVIGATION (the only cross-screen API):
 - To open another screen (e.g. a detail view), call navigate("OtherScreenId", { any: "params" }) from an onPress.
 - A detail screen reads its input from the \`params\` prop and can call goBack().
@@ -72,6 +76,8 @@ export function auditIosFeel(code: string): string[] {
     { re: /createDrawerNavigator|DrawerLayout/, msg: "drawer / hamburger menu" },
     { re: /textTransform\s*:\s*["']uppercase["']/, msg: "ALL-CAPS text (uppercase)" },
     { re: /name=["']md-/, msg: "Material icon name (md-*)" },
+    { re: /name=["'][a-z]+\.[a-z.]+["']/, msg: "SF Symbols icon name (foo.bar.fill)" },
+    { re: /name=["'](chevron-(left|right)|plus|minus|bell|dollar|trash-2)["']/, msg: "non-Ionicons icon name (web/material variant)" },
   ];
   return checks.filter((c) => c.re.test(code)).map((c) => c.msg);
 }
