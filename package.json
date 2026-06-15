@@ -1,0 +1,20 @@
+{
+  "name": "claude-replit",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Replit-style web IDE with a live Expo phone preview and tap-to-edit",
+  "scripts": {
+    "dev": "concurrently -n backend,ide -c blue,green \"pnpm --filter @cr/backend dev\" \"pnpm --filter @cr/ide-web dev\"",
+    "dev:all": "concurrently -n backend,ide,template -c blue,green,magenta \"pnpm --filter @cr/backend dev\" \"pnpm --filter @cr/ide-web dev\" \"pnpm --filter @cr/template-app web\"",
+    "build:packages": "pnpm --filter \"./packages/*\" -r build",
+    "test": "pnpm --filter \"./packages/*\" -r test"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.33.0"
+}

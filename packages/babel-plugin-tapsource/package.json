@@ -1,0 +1,13 @@
+{
+  "name": "@cr/babel-plugin-tapsource",
+  "version": "0.1.0",
+  "main": "./index.cjs",
+  "scripts": {
+    "build": "echo \"no build\" && exit 0",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/preset-typescript": "^7.26.0"
+  }
+}
