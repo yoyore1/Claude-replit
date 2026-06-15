@@ -18,120 +18,230 @@ import {
   radius,
 } from "./ui";
 
+type Tab = "Home" | "Log" | "History" | "Settings";
+
 export default function App() {
-  const [editSheetOpen, setEditSheetOpen] = useState(false);
-
-  const openEditSheet = () => setEditSheetOpen(true);
-  const closeEditSheet = () => setEditSheetOpen(false);
-
-  const handleSave = () => {
-    closeEditSheet();
-    appAlert("Profile Updated", "Your profile changes have been saved.");
-  };
-
-  const handleShare = async () => {
-    try {
-      await share("Check out Alex Morgan's profile!");
-    } catch (e) {}
-  };
+  const [tab, setTab] = useState<Tab>("Home");
 
   return (
-    <Screen largeTitle="Profile">
+    <View style={styles.root}>
+      <View style={styles.content}>
+        {tab === "Home" && <HomeScreen />}
+        {tab === "Log" && <LogScreen />}
+        {tab === "History" && <HistoryScreen />}
+        {tab === "Settings" && <SettingsScreen />}
+      </View>
+      <TabBar current={tab} onChange={setTab} />
+    </View>
+  );
+}
+
+function HomeScreen() {
+  return (
+    <Screen largeTitle="Today">
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.header, {
-          color: "#cb2a2a",
-          backgroundColor: "#2c52c3"
-        }]}>
-          <Image
-            source={{
-              uri: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
-            }}
-            style={styles.avatar}
+        <View style={styles.heroCard}>
+          <View style={styles.heroAccent} />
+          <View style={styles.heroHeader}>
+            <Text style={styles.heroLabel}>Daily Progress</Text>
+            <Text style={styles.heroDate}>Monday</Text>
+          </View>
+          <Text style={styles.heroValue}>2,450</Text>
+          <Text style={styles.heroSub}>of 5,000 steps</Text>
+          <View style={styles.progressBar}>
+            <View style={styles.progressFill} />
+          </View>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>320</Text>
+              <Text style={styles.statLabel}>Calories</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>45</Text>
+              <Text style={styles.statLabel}>Minutes</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>2</Text>
+              <Text style={styles.statLabel}>Workouts</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.weekCard}>
+          <Text style={styles.weekTitle}>This Week</Text>
+          <View style={styles.weekStrip}>
+            <View style={styles.dayItem}>
+              <Text style={styles.dayLabel}>Mon</Text>
+              <View style={[styles.dayDot, styles.dayDotActive]} />
+            </View>
+            <View style={styles.dayItem}>
+              <Text style={styles.dayLabel}>Tue</Text>
+              <View style={[styles.dayDot, styles.dayDotActive]} />
+            </View>
+            <View style={styles.dayItem}>
+              <Text style={styles.dayLabel}>Wed</Text>
+              <View style={[styles.dayDot, styles.dayDotInactive]} />
+            </View>
+            <View style={styles.dayItem}>
+              <Text style={styles.dayLabel}>Thu</Text>
+              <View style={[styles.dayDot, styles.dayDotActive]} />
+            </View>
+            <View style={styles.dayItem}>
+              <Text style={styles.dayLabel}>Fri</Text>
+              <View style={[styles.dayDot, styles.dayDotInactive]} />
+            </View>
+            <View style={styles.dayItem}>
+              <Text style={styles.dayLabel}>Sat</Text>
+              <View style={[styles.dayDot, styles.dayDotToday]} />
+            </View>
+            <View style={styles.dayItem}>
+              <Text style={styles.dayLabel}>Sun</Text>
+              <View style={[styles.dayDot, styles.dayDotInactive]} />
+            </View>
+          </View>
+        </View>
+
+        <GroupedSection header="Quick Start">
+          <SettingsRow
+            label="Start Workout"
+            icon="play.circle.fill"
+            onPress={() =>
+              appAlert("Starting Workout", "Get ready to begin your session.")
+            }
           />
-          <Text style={[styles.name, {
-            color: "#af187f"
-          }]}>Alex Morg</Text>
-          <Text style={styles.handle}>@alexmorgan</Text>
-          <Text style={styles.bio}>
-            Designer, traveler, coffee enthusiast. Building beautiful things one pixel at a time.
+          <SettingsRow
+            label="Log Exercise"
+            icon="plus.circle.fill"
+            onPress={() =>
+              appAlert("Log Exercise", "Add a new exercise entry.")
+            }
+          />
+          <SettingsRow
+            label="View History"
+            icon="clock.fill"
+            onPress={() => appAlert("History", "View your past workouts.")}
+          />
+        </GroupedSection>
+
+        <GroupedSection header="Recent Activity">
+          <SettingsRow label="Morning Strength" value="45 min" />
+          <SettingsRow label="Evening Yoga" value="30 min" />
+          <SettingsRow label="Cardio Run" value="25 min" />
+        </GroupedSection>
+
+        <GroupedSection
+          header="Goals"
+          footer="Stay consistent to reach your weekly target"
+        >
+          <SettingsRow label="Weekly Workouts" value="3 of 5" />
+          <SettingsRow label="Active Minutes" value="180 of 210" />
+        </GroupedSection>
+
+        <View style={styles.tipCard}>
+          <Text style={styles.tipTitle}>Daily Tip</Text>
+          <Text style={styles.tipText}>
+            Stay hydrated and take short walks throughout the day.
           </Text>
         </View>
-
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>248</Text>
-            <Text style={styles.statLabel}>Posts</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>1.2K</Text>
-            <Text style={styles.statLabel}>Followers</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>342</Text>
-            <Text style={styles.statLabel}>Following</Text>
-          </View>
-        </View>
-
-        <View style={styles.actionsRow}>
-          <View style={styles.editButtonWrapper}>
-            <AppButton
-              title="Edit My Prof"
-              onPress={openEditSheet}
-              style={{
-                backgroundColor: "#d02525"
-              }}>Edit Profi</AppButton>
-          </View>
-          <Pressable style={styles.shareButton} onPress={handleShare}>
-            <Text style={styles.shareButtonText}>Sha</Text>
-          </Pressable>
-        </View>
-
-        <GroupedSection
-          header="Details"
-          headerStyle={{
-            color: "#34C759"
-          }}>
-          <SettingsRow label="Email" value="alex@example.com" />
-          <SettingsRow label="Location" value="San Francisco, CA" />
-          <SettingsRow label="Joined" value="March 2021" />
-          <SettingsRow label="Website" value="alexmorgan.design" />
-        </GroupedSection>
-
-        <GroupedSection
-          header="Account"
-          footer="Manage your account settings and preferences."
-        >
-          <SettingsRow label="Privacy" />
-          <SettingsRow label="Notifications" />
-          <SettingsRow label="Help & Support" />
-          <SettingsRow label="Sign Out" destructive />
-        </GroupedSection>
       </ScrollView>
-      <Sheet visible={editSheetOpen} onClose={closeEditSheet} title="Edit Profile">
-        <View style={styles.sheetContent}>
-          <Image
-            source={{
-              uri: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
-            }}
-            style={styles.sheetAvatar}
+    </Screen>
+  );
+}
+
+function LogScreen() {
+  const [type, setType] = useState("Strength");
+  const [intensity, setIntensity] = useState("Medium");
+  const [showSheet, setShowSheet] = useState(false);
+
+  return (
+    <Screen largeTitle="Log Workout">
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <GroupedSection header="Exercise Type">
+          <View style={styles.segmentedWrap}>
+            <SegmentedControl
+              options={["Strength", "Cardio", "Yoga", "Other"]}
+              value={type}
+              onChange={setType}
+            />
+          </View>
+        </GroupedSection>
+
+        <GroupedSection header="Duration">
+          <SettingsRow
+            label="Minutes"
+            value="45"
+            onPress={() =>
+              actionMenu("Duration", [
+                "15 min",
+                "30 min",
+                "45 min",
+                "60 min",
+                "90 min",
+              ])
+            }
           />
-          <Text style={styles.sheetFieldLabel}>Name</Text>
-          <View style={styles.sheetFieldValue}>
-            <Text style={styles.sheetFieldText}>Alex Morgan</Text>
+          <SettingsRow
+            label="Calories"
+            value="320"
+            onPress={() =>
+              actionMenu("Calories", [
+                "150",
+                "200",
+                "250",
+                "320",
+                "400",
+                "500",
+              ])
+            }
+          />
+        </GroupedSection>
+
+        <GroupedSection header="Intensity">
+          <View style={styles.segmentedWrap}>
+            <SegmentedControl
+              options={["Low", "Medium", "High"]}
+              value={intensity}
+              onChange={setIntensity}
+            />
           </View>
-          <Text style={styles.sheetFieldLabel}>Bio</Text>
-          <View style={styles.sheetFieldValue}>
-            <Text style={styles.sheetFieldText}>
-              Designer, traveler, coffee enthusiast.
-            </Text>
-          </View>
-          <View style={styles.sheetActions}>
-            <AppButton title="Save Changes" onPress={handleSave} />
+        </GroupedSection>
+
+        <GroupedSection header="Details">
+          <SettingsRow label="Date" value="Today" />
+          <SettingsRow label="Time" value="7:30 AM" />
+        </GroupedSection>
+
+        <GroupedSection header="Notes">
+          <SettingsRow
+            label="Add notes"
+            value="Optional"
+            onPress={() =>
+              appAlert("Notes", "Add details about your workout.")
+            }
+          />
+        </GroupedSection>
+
+        <View style={styles.buttonWrap}>
+          <AppButton title="Save Workout" onPress={() => setShowSheet(true)} />
+        </View>
+      </ScrollView>
+
+      <Sheet visible={showSheet} onClose={() => setShowSheet(false)}>
+        <View style={styles.sheetContent}>
+          <Text style={styles.sheetTitle}>Workout Saved</Text>
+          <Text style={styles.sheetMessage}>
+            Great job! Your workout has been logged successfully.
+          </Text>
+          <View style={styles.sheetButton}>
+            <AppButton title="Done" onPress={() => setShowSheet(false)} />
           </View>
         </View>
       </Sheet>
@@ -139,118 +249,427 @@ export default function App() {
   );
 }
 
+function HistoryScreen() {
+  return (
+    <Screen largeTitle="History">
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.searchWrap}>
+          <SearchField placeholder="Search workouts" />
+        </View>
+
+        <GroupedSection header="This Week">
+          <SettingsRow label="Morning Strength" value="Mon · 45 min" />
+          <SettingsRow label="Evening Yoga" value="Wed · 30 min" />
+          <SettingsRow label="Cardio Run" value="Fri · 25 min" />
+        </GroupedSection>
+
+        <GroupedSection header="Last Week">
+          <SettingsRow label="Full Body" value="Mon · 60 min" />
+          <SettingsRow label="Stretching" value="Thu · 20 min" />
+          <SettingsRow label="Evening Walk" value="Sat · 40 min" />
+        </GroupedSection>
+
+        <GroupedSection header="Stats Summary">
+          <SettingsRow label="Total Workouts" value="12" />
+          <SettingsRow label="Total Time" value="6h 45m" />
+          <SettingsRow label="Avg per Week" value="4.2" />
+          <SettingsRow label="Current Streak" value="5 days" />
+        </GroupedSection>
+      </ScrollView>
+    </Screen>
+  );
+}
+
+function SettingsScreen() {
+  return (
+    <Screen largeTitle="Settings">
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <GroupedSection header="Goals">
+          <SettingsRow
+            label="Daily Steps"
+            value="5,000"
+            onPress={() =>
+              actionMenu("Daily Steps", ["3,000", "5,000", "8,000", "10,000"])
+            }
+          />
+          <SettingsRow
+            label="Weekly Workouts"
+            value="5"
+            onPress={() =>
+              actionMenu("Weekly Workouts", ["3", "4", "5", "7"])
+            }
+          />
+          <SettingsRow
+            label="Active Minutes"
+            value="30"
+            onPress={() =>
+              actionMenu("Active Minutes", ["15", "30", "45", "60"])
+            }
+          />
+        </GroupedSection>
+
+        <GroupedSection header="Reminders">
+          <SettingsRow
+            label="Workout Reminders"
+            value="On"
+            onPress={() => actionMenu("Reminders", ["On", "Off"])}
+          />
+          <SettingsRow
+            label="Daily Reminder"
+            value="7:00 AM"
+            onPress={() =>
+              appAlert("Reminder Time", "Set your daily reminder time.")
+            }
+          />
+          <SettingsRow
+            label="Weekly Summary"
+            value="Sunday"
+            onPress={() => actionMenu("Summary Day", ["Monday", "Sunday"])}
+          />
+        </GroupedSection>
+
+        <GroupedSection header="Preferences">
+          <SettingsRow
+            label="Units"
+            value="Metric"
+            onPress={() => actionMenu("Units", ["Metric", "Imperial"])}
+          />
+          <SettingsRow
+            label="Theme"
+            value="Calm Blue"
+            onPress={() =>
+              actionMenu("Theme", ["Calm Blue", "Light", "Dark"])
+            }
+          />
+          <SettingsRow
+            label="Sound"
+            value="Gentle"
+            onPress={() =>
+              actionMenu("Sound", ["Off", "Gentle", "Energetic"])
+            }
+          />
+        </GroupedSection>
+
+        <GroupedSection header="About">
+          <SettingsRow label="Version" value="1.0.0" />
+          <SettingsRow
+            label="Share App"
+            onPress={() =>
+              share("Check out BlueFit Tracker!", "https://bluefit.app")
+            }
+          />
+          <SettingsRow
+            label="Privacy Policy"
+            onPress={() =>
+              appAlert("Privacy Policy", "View our privacy policy.")
+            }
+          />
+        </GroupedSection>
+      </ScrollView>
+    </Screen>
+  );
+}
+
+function TabBar({
+  current,
+  onChange,
+  style,
+}: {
+  current: Tab;
+  onChange: (tab: Tab) => void;
+  style?: any;
+}) {
+  return (
+    <View style={[styles.tabBar, style]}>
+      <Pressable
+        style={styles.tabItem}
+        onPress={() => onChange("Home")}
+      >
+        <Icon name={current === "Home" ? "house.fill" : "house"} />
+        <Text
+          style={[
+            styles.tabLabel,
+            current === "Home" && styles.tabLabelActive,
+          ]}
+        >
+          Home
+        </Text>
+      </Pressable>
+      <Pressable
+        style={styles.tabItem}
+        onPress={() => onChange("Log")}
+      >
+        <Icon name={current === "Log" ? "plus.circle.fill" : "plus.circle"} />
+        <Text
+          style={[
+            styles.tabLabel,
+            current === "Log" && styles.tabLabelActive,
+          ]}
+        >
+          Log
+        </Text>
+      </Pressable>
+      <Pressable
+        style={styles.tabItem}
+        onPress={() => onChange("History")}
+      >
+        <Icon name={current === "History" ? "clock.fill" : "clock"} />
+        <Text
+          style={[
+            styles.tabLabel,
+            current === "History" && styles.tabLabelActive,
+          ]}
+        >
+          History
+        </Text>
+      </Pressable>
+      <Pressable
+        style={styles.tabItem}
+        onPress={() => onChange("Settings")}
+      >
+        <Icon
+          name={current === "Settings" ? "gearshape.fill" : "gearshape"}
+        />
+        <Text
+          style={[
+            styles.tabLabel,
+            current === "Settings" && styles.tabLabelActive,
+          ]}
+        >
+          Settings
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: "#E6F2FF",
+  },
+  content: {
+    flex: 1,
+  },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 100,
   },
-  header: {
+  heroCard: {
+    backgroundColor: "#FFFFFF",
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 20,
+    overflow: "hidden",
+    shadowColor: "#4A90E2",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+  },
+  heroAccent: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+    backgroundColor: "#4A90E2",
+  },
+  heroHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 24,
-  },
-  avatar: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    backgroundColor: "#E5E5EA",
     marginBottom: 16,
   },
-  name: {
-    ...type.title2,
-    color: colors.label,
-    marginBottom: 2,
+  heroLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#4A90E2",
+    letterSpacing: 0.5,
   },
-  handle: {
-    ...type.subheadline,
-    color: colors.secondaryLabel,
-    marginBottom: 12,
+  heroDate: {
+    fontSize: 13,
+    color: "#6B8CAE",
   },
-  bio: {
-    ...type.body,
-    color: colors.label,
-    textAlign: "center",
-    lineHeight: 22,
-    paddingHorizontal: 8,
+  heroValue: {
+    fontSize: 48,
+    fontWeight: "700",
+    color: "#1A3A5C",
+    letterSpacing: -1,
   },
-  statsContainer: {
-    flexDirection: "row",
-    marginHorizontal: 16,
-    backgroundColor: "#F2F2F7",
-    borderRadius: 12,
-    paddingVertical: 14,
+  heroSub: {
+    fontSize: 15,
+    color: "#6B8CAE",
+    marginBottom: 16,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: "#D0E4F7",
+    borderRadius: 4,
+    overflow: "hidden",
     marginBottom: 20,
   },
-  statItem: {
-    flex: 1,
-    alignItems: "center",
+  progressFill: {
+    width: "60%",
+    height: "100%",
+    backgroundColor: "#4A90E2",
+    borderRadius: 4,
   },
-  statNumber: {
-    ...type.title3,
-    fontWeight: "600",
-    color: colors.label,
+  statsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+  },
+  statItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#1A3A5C",
   },
   statLabel: {
-    ...type.footnote,
-    color: colors.secondaryLabel,
+    fontSize: 12,
+    color: "#6B8CAE",
     marginTop: 2,
   },
   statDivider: {
     width: 1,
-    backgroundColor: "#C6C6C8",
-    marginVertical: 4,
+    height: 32,
+    backgroundColor: "#D0E4F7",
   },
-  actionsRow: {
-    flexDirection: "row",
-    paddingHorizontal: 16,
+  weekCard: {
+    backgroundColor: "#FFFFFF",
+    marginHorizontal: 16,
     marginBottom: 24,
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: "#4A90E2",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
   },
-  editButtonWrapper: {
-    flex: 2,
-    marginRight: 8,
-  },
-  shareButton: {
-    flex: 1,
-    backgroundColor: "#F2F2F7",
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 44,
-  },
-  shareButtonText: {
-    ...type.body,
+  weekTitle: {
+    fontSize: 15,
     fontWeight: "600",
-    color: "#007AFF",
+    color: "#1A3A5C",
+    marginBottom: 12,
   },
-  sheetContent: {
-    padding: 20,
+  weekStrip: {
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
-  sheetAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignSelf: "center",
-    marginBottom: 20,
-    backgroundColor: "#E5E5EA",
+  dayItem: {
+    alignItems: "center",
   },
-  sheetFieldLabel: {
-    ...type.footnote,
-    color: colors.secondaryLabel,
+  dayLabel: {
+    fontSize: 11,
+    color: "#6B8CAE",
     marginBottom: 6,
-    marginTop: 12,
     fontWeight: "500",
   },
-  sheetFieldValue: {
-    backgroundColor: "#F2F2F7",
-    borderRadius: 10,
+  dayDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  dayDotActive: {
+    backgroundColor: "#4A90E2",
+  },
+  dayDotInactive: {
+    backgroundColor: "#D0E4F7",
+  },
+  dayDotToday: {
+    backgroundColor: "#4A90E2",
+    borderWidth: 3,
+    borderColor: "#E6F2FF",
+  },
+  tipCard: {
+    backgroundColor: "#FFFFFF",
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 24,
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: "#4A90E2",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+  },
+  tipTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#4A90E2",
+    marginBottom: 6,
+  },
+  tipText: {
+    fontSize: 15,
+    color: "#1A3A5C",
+    lineHeight: 22,
+  },
+  segmentedWrap: {
+    paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingHorizontal: 14,
   },
-  sheetFieldText: {
-    ...type.body,
-    color: colors.label,
+  buttonWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
-  sheetActions: {
-    marginTop: 24,
+  searchWrap: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  sheetContent: {
+    padding: 24,
+    alignItems: "center",
+  },
+  sheetTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#1A3A5C",
+    marginBottom: 8,
+  },
+  sheetMessage: {
+    fontSize: 15,
+    color: "#6B8CAE",
+    textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  sheetButton: {
+    width: "100%",
+  },
+  tabBar: {
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#D0E4F7",
+    paddingBottom: 24,
+    paddingTop: 8,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    minHeight: 44,
+  },
+  tabLabel: {
+    fontSize: 10,
+    color: "#6B8CAE",
+    marginTop: 4,
+    fontWeight: "500",
+  },
+  tabLabelActive: {
+    color: "#4A90E2",
+    fontWeight: "600",
   },
 });

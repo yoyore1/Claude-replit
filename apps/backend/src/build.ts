@@ -4,6 +4,7 @@ import { writeFile } from "./fileApi.js";
 import { extractJson, type AppSpec } from "./interview.js";
 import { IOS_FEEL_PROMPT, auditIosFeel } from "./iosFeel.js";
 import { reset as resetHistory } from "./history.js";
+import { seedFromBuild } from "./projectFiles.js";
 
 export interface BuildResult {
   ok: boolean;
@@ -49,6 +50,8 @@ TAP-TO-EDIT RULES (critical — follow exactly so editing works):
 export async function buildApp(input: {
   spec?: AppSpec;
   idea?: string;
+  /** When set, the built files are also stashed in this project's store. */
+  projectId?: string;
 }): Promise<BuildResult> {
   const userContent = input.spec
     ? `Build this app spec as JSON:\n${JSON.stringify(input.spec, null, 2)}`
@@ -141,6 +144,16 @@ export async function buildApp(input: {
     }
     // Fresh app → fresh undo timeline (the built app is the "initial" state).
     resetHistory();
+    // Stash the generated files in the project's store + mark it the live one.
+    if (input.projectId) {
+      const fileMap: Record<string, string> = {};
+      for (const rel of written) fileMap[rel] = parsed.files[rel];
+      try {
+        await seedFromBuild(input.projectId, fileMap);
+      } catch {
+        /* store failure shouldn't fail the build itself */
+      }
+    }
     // Non-fatal audit (no rebuild): surface any Android-isms that slipped through.
     const warnings = auditIosFeel(appSrc);
     return { ok: true, files: written, warnings };

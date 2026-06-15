@@ -1,5 +1,6 @@
 import { WebSocketServer, WebSocket } from "ws";
-import type { Server } from "node:http";
+import type { IncomingMessage } from "node:http";
+import type { Duplex } from "node:stream";
 
 /**
  * Relay hub between the running preview app and the IDE.
@@ -9,15 +10,18 @@ import type { Server } from "node:http";
  *
  * Source edits do NOT flow through here — they go IDE -> REST -> disk -> Metro,
  * keeping the "selection plane" and "edit plane" separate (protects Fast Refresh).
+ *
+ * Uses `noServer` so it can share one HTTP server with the project socket: the
+ * caller routes `upgrade` events by path and forwards the IDE/app ones here.
  */
 export class Hub {
   private wss: WebSocketServer;
   private apps = new Set<WebSocket>();
   private ides = new Set<WebSocket>();
 
-  constructor(server: Server) {
-    this.wss = new WebSocketServer({ server });
-    this.wss.on("connection", (ws, req) => {
+  constructor() {
+    this.wss = new WebSocketServer({ noServer: true });
+    this.wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
       const url = req.url || "";
       const isIde = url.startsWith("/ide");
       const group = isIde ? this.ides : this.apps;
@@ -34,6 +38,13 @@ export class Hub {
 
       ws.on("close", () => group.delete(ws));
       ws.on("error", () => group.delete(ws));
+    });
+  }
+
+  /** Complete a WS upgrade the caller routed to this hub. */
+  handleUpgrade(req: IncomingMessage, socket: Duplex, head: Buffer) {
+    this.wss.handleUpgrade(req, socket, head, (ws) => {
+      this.wss.emit("connection", ws, req);
     });
   }
 

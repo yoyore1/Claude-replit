@@ -3,17 +3,19 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port 5173 --host",
+    "dev": "node ../../node_modules/vite/bin/vite.js --port 5173 --host",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
     "@cr/protocol": "workspace:*",
     "@monaco-editor/react": "^4.6.0",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
