@@ -20,6 +20,12 @@ const IDEA_POOL = [
   "Save my family's secret recipes in one place",
   "Study with flash cards before my big exam",
   "Pack the perfect bag for any trip",
+  "Split bills fairly with my roommates",
+  "Count down to my next big trip",
+  "Log my baby's feeds and naps",
+  "Keep a reading list of books to finish",
+  "Practice a new language a little each day",
+  "Send simple invoices for my side hustle",
 ];
 
 function pickThree(except: string[] = []): string[] {
@@ -34,15 +40,28 @@ function pickThree(except: string[] = []): string[] {
 export function Home({ go }: { go: Go }) {
   const [idea, setIdea] = useState("");
   const [chips, setChips] = useState<string[]>(() => pickThree());
+  const [chipsIn, setChipsIn] = useState(true);
   const [starting, setStarting] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stack, setStack] = useState<ViewSet[]>([]);
   const [stackIndex, setStackIndex] = useState(0);
 
+  // Rotate the starter ideas on a loop: fade the current set out, swap in three
+  // fresh ones (never repeating the visible trio), then fade back in.
   useEffect(() => {
-    const t = setInterval(() => setChips((prev) => pickThree(prev)), 5200);
-    return () => clearInterval(t);
+    let swapT: ReturnType<typeof setTimeout>;
+    const t = setInterval(() => {
+      setChipsIn(false); // fade out
+      swapT = setTimeout(() => {
+        setChips((prev) => pickThree(prev));
+        setChipsIn(true); // fade new ones in
+      }, 420); // match the CSS opacity transition
+    }, 2500);
+    return () => {
+      clearInterval(t);
+      clearTimeout(swapT);
+    };
   }, []);
 
   async function start() {
@@ -138,7 +157,7 @@ export function Home({ go }: { go: Go }) {
           />
         )}
 
-        <div className="chips">
+        <div className={`chips rotating${chipsIn ? " in" : " out"}`}>
           {chips.map((c) => (
             <button key={c} className="chip" onClick={() => setIdea(c)}>
               {c}

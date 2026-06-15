@@ -1,0 +1,5 @@
+# Expo local cache / devtools state
+.expo/
+
+# Runtime-generated active project (the activated app's screens, like .data/)
+src/

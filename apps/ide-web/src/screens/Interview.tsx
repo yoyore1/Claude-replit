@@ -150,6 +150,12 @@ export function Interview({
   const step = isWrapup ? total : sugg?.step ?? 1;
   const started = s.interview.length > 0;
 
+  // Drop any model-supplied "pick for me" option — we always render our own red
+  // "Let Appable pick" pill instead, so it's consistent on every question.
+  const realItems = (sugg?.items ?? []).filter(
+    (i) => !/you pick|appable pick|surprise|decide for me|pick for me|no preference|not sure/i.test(i),
+  );
+
   return (
     <div className="screen interview">
       <nav className="nav">
@@ -246,7 +252,7 @@ export function Interview({
         )}
 
         {/* Regular multi-select chips */}
-        {!isWrapup && !isVibe && sugg && sugg.items.length > 0 && (
+        {!isWrapup && !isVibe && sugg && realItems.length > 0 && (
           <div className="suggest-block">
             <div className="suggest-hint">
               {picked.length
@@ -254,7 +260,7 @@ export function Interview({
                 : "Pick any that fit — one, two, or all"}
             </div>
             <div className="suggest-row">
-              {sugg.items.map((item, i) => (
+              {realItems.map((item, i) => (
                 <button
                   key={`${item}-${i}`}
                   className={`chip${picked.includes(item) ? " selected" : ""}`}
@@ -263,13 +269,11 @@ export function Interview({
                   {item}
                 </button>
               ))}
-              {!sugg.items.some((i) =>
-                /you pick|appable pick|surprise|decide for me/i.test(i),
-              ) && (
-                <button className="chip ghost" onClick={() => sendAnswer(APPABLE_PICK)}>
-                  {APPABLE_PICK}
-                </button>
-              )}
+              {/* Always the dedicated red "Let Appable pick" pill — Appable
+                  chooses the single best option and moves on. */}
+              <button className="chip ghost" onClick={() => sendAnswer(APPABLE_PICK)}>
+                {APPABLE_PICK}
+              </button>
             </div>
           </div>
         )}

@@ -256,23 +256,24 @@ export class ProjectSocket {
 
     updateProject(projectId, { status: "building" });
     this.broadcast(projectId, { type: "status", status: "building" });
-    this.log(projectId, "Starting build…", 5);
-    this.log(projectId, "Designing your screens with AI…", 25);
 
     const res = await buildApp({
       projectId,
       spec: project.spec ?? undefined,
       idea: project.spec ? undefined : project.name,
+      onProgress: (pct, label) => this.log(projectId, label, pct),
     });
 
     if (res.ok) {
-      this.log(projectId, "Writing source files…", 80);
       updateProject(projectId, { status: "running", preview: this.preview() });
-      this.log(projectId, "Your app is live!", 100);
       this.broadcast(projectId, { type: "status", status: "running" });
       this.broadcast(projectId, { type: "preview", preview: this.preview() });
-      if (res.warnings?.length)
-        this.log(projectId, `Notes: ${res.warnings.join(", ")}`);
+      if (res.addedExtras?.length)
+        this.reply(
+          projectId,
+          "build",
+          `I also added ${res.addedExtras.join(", ")} — things a great version of this app usually needs.`,
+        );
       this.reply(
         projectId,
         "build",

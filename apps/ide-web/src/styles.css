@@ -829,6 +829,20 @@ button.sm {
   gap: 8px;
   margin-top: 26px;
 }
+/* Auto-rotating starter ideas: crossfade the set out and the new one in. */
+.chips.rotating {
+  justify-content: center;
+  min-height: 38px;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.chips.rotating.in {
+  opacity: 1;
+  transform: translateY(0);
+}
+.chips.rotating.out {
+  opacity: 0;
+  transform: translateY(6px);
+}
 .chip {
   background: var(--panel);
   border: 1px solid var(--border);

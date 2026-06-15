@@ -52,7 +52,9 @@ export function AppButton({
       <Animated.View
         style={[
           styles.base,
-          isPrimary ? styles.primary : styles.bare,
+          // Read tint at render time — the app may reassign colors.tint after
+          // this module's StyleSheet was created.
+          isPrimary ? { backgroundColor: colors.tint } : styles.bare,
           { transform: [{ scale }] },
           style,
         ]}
@@ -82,7 +84,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 20,
   },
-  primary: { backgroundColor: colors.tint },
   bare: { backgroundColor: "transparent" },
   label: { ...type.headline, color: colors.label },
 });

@@ -38,6 +38,30 @@ HARD BANS (Android tells — never emit):
 FEEL: press feedback = opacity/scale; spring motion; restrained. When unsure, copy Apple's own app (Settings for lists, App Store for cards, Messages for inputs).
 `.trim();
 
+/**
+ * The contract for generating ONE screen of a multi-screen app. Injected into the
+ * per-screen codegen prompt on top of IOS_FEEL_PROMPT. The navigation shell
+ * (App.tsx) is assembled separately, so each screen is a self-contained component
+ * that receives navigation via props — it never imports other screens or wires nav.
+ */
+export const SCREEN_CONTRACT = `
+YOU ARE WRITING ONE SCREEN of a larger multi-screen app. Output ONLY this one file.
+
+FILE SHAPE (exactly):
+- import React, { useState } from "react";
+- import the RN primitives you use from "react-native" (View, Text, Pressable, Image, StyleSheet).
+- import kit pieces from "../../ui" (NOT "./ui") — e.g. import { Screen, GroupedSection, SettingsRow, AppButton, SegmentedControl, SearchField, Sheet, Icon, appAlert, actionMenu, colors, type, spacing, radius } from "../../ui";
+- export default function <ScreenId>({ navigate, goBack, params }) { ... }
+- The component's ROOT must be <Screen largeTitle="...">. Screen already scrolls — do NOT wrap it in your own ScrollView.
+
+NAVIGATION (the only cross-screen API):
+- To open another screen (e.g. a detail view), call navigate("OtherScreenId", { any: "params" }) from an onPress.
+- A detail screen reads its input from the \`params\` prop and can call goBack().
+- Do NOT import other screen files and do NOT build your own tab bar or back button — the shell handles that.
+
+Keep ALL the tap-to-edit rules above: literal <Text> copy, literal "#rrggbb" colors, one element per visible item (no .map() for fixed sets). Make this single screen rich, polished, and genuinely useful.
+`.trim();
+
 /** Cheap local audit for Android-isms / banned patterns. Non-fatal warnings. */
 export function auditIosFeel(code: string): string[] {
   const checks: { re: RegExp; msg: string }[] = [

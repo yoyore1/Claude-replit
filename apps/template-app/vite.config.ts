@@ -33,6 +33,10 @@ export default defineConfig({
     // the iOS-native deps so the kit bundles and looks iOS in the browser.
     alias: {
       "react-native": "react-native-web",
+      "react-native-safe-area-context": path.resolve(
+        __dirname,
+        "web-shims/safe-area-context.tsx",
+      ),
       "expo-haptics": path.resolve(__dirname, "web-shims/haptics.ts"),
       "expo-blur": path.resolve(__dirname, "web-shims/blur.tsx"),
       "@expo/vector-icons": path.resolve(__dirname, "web-shims/vector-icons.tsx"),

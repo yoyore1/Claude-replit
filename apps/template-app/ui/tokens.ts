@@ -50,8 +50,16 @@ export const type = {
   caption: { fontSize: 12, fontWeight: "400" as const },
 };
 
-export const radius = { card: 12, button: 14, sheet: 12, field: 10 };
-export const spacing = { h: 16, gap: 12, section: 20 };
+export const radius = {
+  card: 12, button: 14, sheet: 12, field: 10,
+  // Conventional aliases used by generated screens
+  sm: 6, md: 12, lg: 16, xl: 20, full: 9999,
+};
+export const spacing = {
+  h: 16, gap: 12, section: 20,
+  // Conventional aliases used by generated screens
+  xs: 4, sm: 8, md: 16, lg: 24, xl: 32,
+};
 export const hairline = StyleSheet.hairlineWidth;
 
 /** System font for functional UI (SF Pro on iOS). Display font is per-app. */

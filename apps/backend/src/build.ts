@@ -2,9 +2,11 @@ import { chat, builderConfig, type ChatMessage } from "@cr/llm";
 import { parse } from "@cr/codemod";
 import { writeFile } from "./fileApi.js";
 import { extractJson, type AppSpec } from "./interview.js";
-import { IOS_FEEL_PROMPT, auditIosFeel } from "./iosFeel.js";
+import { IOS_FEEL_PROMPT, SCREEN_CONTRACT, auditIosFeel } from "./iosFeel.js";
 import { reset as resetHistory } from "./history.js";
 import { seedFromBuild } from "./projectFiles.js";
+import { planApp, type Blueprint, type BlueprintScreen } from "./architect.js";
+import { renderAppShell, placeholderScreen } from "./buildShell.js";
 
 export interface BuildResult {
   ok: boolean;
@@ -12,152 +14,161 @@ export interface BuildResult {
   error?: string;
   /** Non-fatal iOS-feel audit notes (Android-isms etc.). */
   warnings?: string[];
+  /** Smart additions the architect made beyond the explicit ask. */
+  addedExtras?: string[];
   /** The raw model output, kept for debugging when parsing fails. */
   raw?: string;
 }
 
-const SYSTEM: ChatMessage = {
+/** Progress callback so the socket can stream real per-phase/per-screen updates. */
+export type OnProgress = (pct: number, label: string) => void;
+
+const SCREEN_SYSTEM = (accent: string, background: string): ChatMessage => ({
   role: "system",
   content: `You are a senior React Native engineer building inside a visual editor where the user
 edits the running app by TAPPING elements. The code you write MUST be tap-to-edit friendly.
 
 OUTPUT FORMAT: respond with ONLY a JSON object, no markdown, of the shape:
-{"files": {"App.tsx": "<full file contents>"}}
+{"code": "<full file contents of this one screen>"}
 
-Hard requirements for App.tsx:
-- import React, { useState } from "react";
-- import { View, Text, ScrollView, Pressable, Image, StyleSheet } from "react-native";
-- export default function App() returning the screen UI. (The tap-to-edit wrapper is
-  added by the host automatically — do NOT import or use TapEditProvider yourself.)
-- ONLY use these RN components: View, Text, ScrollView, Pressable, Image. Images use {{ uri: "https://..." }}.
-- No external packages or native modules beyond the kit below. Simulate multiple screens with useState + conditional rendering or simple tab buttons.
-- Valid TypeScript TSX that compiles. Self-contained and visually polished.
+This app's design tokens — USE THESE so every screen matches:
+- Accent / primary tint: "${accent}"
+- Screen background: "${background}"
 
 ${IOS_FEEL_PROMPT}
 
-TAP-TO-EDIT RULES (critical — follow exactly so editing works):
-- Put visible text as PLAIN literal text directly inside <Text>Hello</Text>. Do NOT build label
-  text from variables, props, template strings, or .map() when it is static copy — the editor
-  rewrites the literal JSX text node.
-- Define styles with StyleSheet.create({ ... }) and give each element a named style. Put colors as
-  explicit literals: color: "#rrggbb" and backgroundColor: "#rrggbb". Avoid computing colors at runtime.
-- Prefer one style object per element (style={styles.x}) or an inline object literal; the editor edits
-  the color key in that object or the referenced StyleSheet entry.
-- Keep each element's opening tag on enough lines that elements are distinct (no giant one-liners).`,
-};
+${SCREEN_CONTRACT}`,
+});
 
-/** Generate the app's source from a spec (or free-text idea) and write it. */
-export async function buildApp(input: {
-  spec?: AppSpec;
-  idea?: string;
-  /** When set, the built files are also stashed in this project's store. */
-  projectId?: string;
-}): Promise<BuildResult> {
-  const userContent = input.spec
-    ? `Build this app spec as JSON:\n${JSON.stringify(input.spec, null, 2)}`
-    : `Build an app for this idea: ${input.idea ?? "a simple starter app"}`;
+/** Build the per-screen user prompt from its blueprint slice. */
+function screenUserPrompt(bp: Blueprint, screen: BlueprintScreen): string {
+  return `App: ${bp.appName}
+This screen — id "${screen.id}", title "${screen.title}"${screen.isDetail ? " (a drill-in DETAIL screen reached via navigate)" : " (a bottom-tab screen)"}.
+Purpose: ${screen.purpose}
+Sections to include: ${screen.components.length ? screen.components.join("; ") : "design sensible sections for the purpose"}
+${screen.sampleData ? `Seed data to render so it looks alive:\n${JSON.stringify(screen.sampleData)}` : ""}
+Other screens you can navigate() to: ${bp.screens
+    .filter((s) => s.id !== screen.id)
+    .map((s) => s.id)
+    .join(", ") || "none"}
 
+Write the complete file for screen "${screen.id}". export default function ${screen.id}({ navigate, goBack, params }).`;
+}
+
+const MAX_ATTEMPTS = 3;
+
+/** Generate one screen file. Returns valid TSX, or null if every attempt fails. */
+async function generateScreen(
+  bp: Blueprint,
+  screen: BlueprintScreen,
+): Promise<string | null> {
   const messages: ChatMessage[] = [
-    SYSTEM,
-    { role: "user", content: userContent },
+    SCREEN_SYSTEM(bp.accent, bp.background),
+    { role: "user", content: screenUserPrompt(bp, screen) },
   ];
-
-  // The builder (MiniMax) is a reasoning model: it occasionally returns empty
-  // content or truncated JSON when its "thinking" eats the token budget. Those
-  // failures are transient, so retry the generate+validate step a couple times
-  // before giving up. We only WRITE once a full, valid file set is in hand.
-  const MAX_ATTEMPTS = 3;
-  let lastError = "";
-  let lastRaw = "";
-
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     let raw: string;
     try {
-      raw = await chat(builderConfig(), {
-        messages,
-        temperature: 0.4,
-        maxTokens: 30000,
-      });
+      raw = await chat(builderConfig(), { messages, temperature: 0.5, maxTokens: 28000 });
     } catch (e: any) {
-      lastError = e.message; // e.g. empty content / network blip — retry
+      console.warn(`[build] ${screen.id} attempt ${attempt}: chat error ${e?.message}`);
+      continue; // network/empty — retry
+    }
+    const parsed = extractJson<{ code: string }>(raw);
+    const code = parsed?.code;
+    if (typeof code !== "string" || !/export\s+default\s/.test(code)) {
+      console.warn(
+        `[build] ${screen.id} attempt ${attempt}: no usable code (len ${raw.length}, parsed=${!!parsed})`,
+      );
       continue;
     }
-    lastRaw = raw;
+    try {
+      parse(code); // must be valid TSX before we trust it
+    } catch (e: any) {
+      console.warn(`[build] ${screen.id} attempt ${attempt}: parse failed ${e?.message}`);
+      continue;
+    }
+    return code;
+  }
+  return null;
+}
 
-    const parsed = extractJson<{ files: Record<string, string> }>(raw);
-    if (!parsed?.files || typeof parsed.files !== "object") {
-      lastError = "Builder did not return a files object"; // truncated JSON — retry
-      continue;
-    }
+/**
+ * Build a complete, dynamic, multi-screen app from a spec (or free-text idea):
+ *   1) architect → blueprint (the screens this app actually needs)
+ *   2) parallel codegen → one polished file per screen
+ *   3) deterministic shell → App.tsx wiring tabs + push/pop navigation
+ * Always writes a valid, runnable app (failed screens fall back to a placeholder).
+ */
+export async function buildApp(input: {
+  spec?: AppSpec;
+  idea?: string;
+  projectId?: string;
+  onProgress?: OnProgress;
+}): Promise<BuildResult> {
+  const progress = input.onProgress ?? (() => {});
 
-    // The entry must exist and export a default App. The TapEditProvider wrapper
-    // is applied by the host entry (web/main.tsx, index.js), and the __tapSource
-    // babel plugin tags every element — so any valid App is tap-editable.
-    const appSrc = parsed.files["App.tsx"];
-    if (typeof appSrc !== "string") {
-      lastError = "Builder did not produce App.tsx";
-      continue;
-    }
-    if (!/export\s+default\s/.test(appSrc)) {
-      lastError = "App.tsx must have a default export";
-      continue;
-    }
+  // ── Phase 1: architect ──────────────────────────────────────────────────
+  progress(8, "Planning your app…");
+  const bp = await planApp(input.spec, input.idea);
+  progress(20, `Designing ${bp.screens.length} screen${bp.screens.length > 1 ? "s" : ""}…`);
 
-    // Validate EVERY source file parses before writing anything, so a partial or
-    // malformed generation never half-writes the project or breaks the bundler.
-    let invalid = "";
-    for (const [rel, content] of Object.entries(parsed.files)) {
-      if (typeof content !== "string") continue;
-      if (!/\.(tsx?|jsx?|json)$/.test(rel)) {
-        invalid = `non-source file: ${rel}`;
-        break;
-      }
-      if (/\.(tsx?|jsx?)$/.test(rel)) {
-        try {
-          parse(content);
-        } catch (e: any) {
-          invalid = `${rel} is not valid: ${e.message}`;
-          break;
-        }
-      }
-    }
-    if (invalid) {
-      lastError = `Generated ${invalid}`; // bad generation — retry
-      continue;
-    }
+  // ── Phase 2: parallel screen codegen ────────────────────────────────────
+  let done = 0;
+  const span = 65; // 20 → 85%
+  const screenFiles = await Promise.all(
+    bp.screens.map(async (screen) => {
+      const code = await generateScreen(bp, screen);
+      done += 1;
+      progress(20 + Math.round((done / bp.screens.length) * span), `Built ${screen.title}`);
+      return { screen, code: code ?? placeholderScreen(screen), fallback: code == null };
+    }),
+  );
 
-    // Validation passed — now write the whole set.
-    const written: string[] = [];
-    for (const [rel, content] of Object.entries(parsed.files)) {
-      if (typeof content !== "string") continue;
-      try {
-        await writeFile(rel, content);
-        written.push(rel);
-      } catch (e: any) {
-        // A filesystem error is not the model's fault — don't retry it.
-        return { ok: false, error: `Cannot write ${rel}: ${e.message}`, raw };
-      }
+  // ── Phase 3: deterministic shell + assemble ─────────────────────────────
+  progress(88, "Wiring it all together…");
+  const files: Record<string, string> = { "App.tsx": renderAppShell(bp) };
+  for (const f of screenFiles) files[f.screen.file] = f.code;
+
+  // Validate every file parses before writing anything.
+  for (const [rel, content] of Object.entries(files)) {
+    try {
+      parse(content);
+    } catch (e: any) {
+      return { ok: false, error: `Generated ${rel} is not valid: ${e.message}`, raw: content };
     }
-    if (written.length === 0) {
-      lastError = "No files were generated";
-      continue;
-    }
-    // Fresh app → fresh undo timeline (the built app is the "initial" state).
-    resetHistory();
-    // Stash the generated files in the project's store + mark it the live one.
-    if (input.projectId) {
-      const fileMap: Record<string, string> = {};
-      for (const rel of written) fileMap[rel] = parsed.files[rel];
-      try {
-        await seedFromBuild(input.projectId, fileMap);
-      } catch {
-        /* store failure shouldn't fail the build itself */
-      }
-    }
-    // Non-fatal audit (no rebuild): surface any Android-isms that slipped through.
-    const warnings = auditIosFeel(appSrc);
-    return { ok: true, files: written, warnings };
   }
 
-  return { ok: false, error: lastError || "build failed", raw: lastRaw };
+  // Write the whole set.
+  const written: string[] = [];
+  for (const [rel, content] of Object.entries(files)) {
+    try {
+      await writeFile(rel, content);
+      written.push(rel);
+    } catch (e: any) {
+      return { ok: false, error: `Cannot write ${rel}: ${e.message}` };
+    }
+  }
+
+  // Fresh app → fresh undo timeline (the built app is the "initial" state).
+  resetHistory();
+  if (input.projectId) {
+    const fileMap: Record<string, string> = {};
+    for (const rel of written) fileMap[rel] = files[rel];
+    try {
+      await seedFromBuild(input.projectId, fileMap);
+    } catch {
+      /* store failure shouldn't fail the build itself */
+    }
+  }
+
+  progress(100, "Your app is live!");
+
+  const warnings: string[] = [];
+  for (const f of screenFiles) {
+    if (f.fallback) warnings.push(`${f.screen.title} used a placeholder (generation failed)`);
+    warnings.push(...auditIosFeel(f.code));
+  }
+
+  return { ok: true, files: written, warnings, addedExtras: bp.addedExtras };
 }

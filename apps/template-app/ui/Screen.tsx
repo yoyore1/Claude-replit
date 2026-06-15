@@ -66,7 +66,7 @@ export function Screen({
       style={[styles.root, { backgroundColor: bg }]}
       contentContainerStyle={styles.content}
       keyboardDismissMode="interactive"
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior="never"
       showsVerticalScrollIndicator={false}
       bounces
     >
