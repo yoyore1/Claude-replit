@@ -37,10 +37,27 @@ function pickThree(except: string[] = []): string[] {
   return out;
 }
 
+// Rotating prompt shown inside the empty idea box: half are concrete app ideas,
+// half are encouraging/half-formed nudges that hint "just start — Suggest ideas
+// has you covered."
+const PLACEHOLDERS = [
+  "I want an app that plans my meals for the week",
+  "Even half an idea works — we'll shape it",
+  "An app to keep my workouts on track",
+  "Just say it, however it comes out…",
+  "Take bookings for my little business",
+  "Not sure yet? Tap 💡 Suggest ideas",
+  "Remind me to water my plants",
+  'Say "gym", "recipes", "budget"… we\'ve got you',
+  "Split expenses with my roommates",
+  "Stuck for words? We'll fill in the rest",
+];
+
 export function Home({ go }: { go: Go }) {
   const [idea, setIdea] = useState("");
   const [chips, setChips] = useState<string[]>(() => pickThree());
   const [chipsIn, setChipsIn] = useState(true);
+  const [typed, setTyped] = useState("");
   const [starting, setStarting] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +80,52 @@ export function Home({ go }: { go: Go }) {
       clearTimeout(swapT);
     };
   }, []);
+
+  // Type the idea-box prompt out like a person, pause, delete, then the next one
+  // — only while the box is empty. Small timing jitter makes it feel human.
+  useEffect(() => {
+    if (idea) {
+      setTyped("");
+      return;
+    }
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    let idx = 0; // which phrase
+    let pos = 0; // chars shown
+    let mode: "type" | "pause" | "delete" = "type";
+    const tick = () => {
+      if (cancelled) return;
+      const phrase = PLACEHOLDERS[idx];
+      if (mode === "type") {
+        pos++;
+        setTyped(phrase.slice(0, pos));
+        if (pos >= phrase.length) {
+          mode = "pause";
+          timer = setTimeout(tick, 1800);
+        } else {
+          timer = setTimeout(tick, 45 + Math.random() * 55);
+        }
+      } else if (mode === "pause") {
+        mode = "delete";
+        timer = setTimeout(tick, 40);
+      } else {
+        pos--;
+        setTyped(phrase.slice(0, Math.max(0, pos)));
+        if (pos <= 0) {
+          idx = (idx + 1) % PLACEHOLDERS.length;
+          mode = "type";
+          timer = setTimeout(tick, 400);
+        } else {
+          timer = setTimeout(tick, 22);
+        }
+      }
+    };
+    timer = setTimeout(tick, 500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [idea]);
 
   async function start() {
     const text = idea.trim();
@@ -115,18 +178,26 @@ export function Home({ go }: { go: Go }) {
           — usually in about ten minutes.
         </p>
 
-        <textarea
-          className="idea-input"
-          placeholder="I want an app that…"
-          value={idea}
-          onChange={(e) => setIdea(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              start();
-            }
-          }}
-        />
+        <div className="idea-input-wrap">
+          {!idea && (
+            <div className="idea-ph" aria-hidden>
+              {typed}
+              <span className="idea-caret" />
+            </div>
+          )}
+          <textarea
+            className="idea-input"
+            placeholder=""
+            value={idea}
+            onChange={(e) => setIdea(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                start();
+              }
+            }}
+          />
+        </div>
 
         <div className="row center">
           <button className="ghost" onClick={suggest} disabled={suggesting}>

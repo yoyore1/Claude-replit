@@ -40,6 +40,7 @@ TAP-TO-EDIT (critical — keep edits working):
     <SettingsRow label="Travel" .../>
   NOT  {["Personal","Work","Ideas","Travel"].map(f => <SettingsRow label={f} .../>)}  and NEVER a hardcoded literal inside .map() (e.g. label="Person") — that makes every row share one source line, so one edit changes them all.
 - Only use .map() for data the USER adds/changes at RUNTIME (e.g. notes they create). There, bind the prop to the item (label={item.title}, value={item.date}) — never a shared hardcoded literal — since runtime data is edited in-app, not by tapping source.
+- FREE-DRAG FRIENDLY — the builder can drag any fixed element to nudge it (we write an element-scoped {transform:[{translateX},{translateY}]} offset on its source line; it keeps its layout slot so siblings don't reflow). Keep every visible word/value its OWN <Text> and every box its own element (already required above); never wrap a fixed set in .map() (a dragged map-item has no unique source line and cannot move). Lay out screens with normal flex containers and standard padding/margins; do NOT pre-set transforms yourself.
 
 REAL DATA & LOGIC (this is a working app, not a mockup) — split CONTENT from LOGIC:
 - CONTENT = static chrome (section headers, button labels, titles, decorative copy, colors).

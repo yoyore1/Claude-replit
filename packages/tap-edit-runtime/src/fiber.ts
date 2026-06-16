@@ -21,6 +21,9 @@ export interface ResolvedElement {
   field?: string;
   currentStyle: EditableStyle;
   rect: { x: number; y: number; width: number; height: number };
+  /** Web only: the host DOM node, so drag can read its containing block. Never
+   *  serialized over the wire (selection messages copy specific fields). */
+  dom?: HTMLElement;
 }
 
 function getFiberFromDom(dom: Element): any | null {
@@ -113,6 +116,7 @@ export function resolveElementAtPoint(
           fontWeight: fontWeightOption(computed.fontWeight),
         },
         rect: { x: r.left, y: r.top, width: r.width, height: r.height },
+        dom: fieldEl,
       };
     }
   }
@@ -172,6 +176,7 @@ export function resolveElementAtPoint(
       fontWeight: fontWeightOption(computed.fontWeight),
     },
     rect: { x: r.left, y: r.top, width: r.width, height: r.height },
+    dom: hostDom,
   };
 }
 

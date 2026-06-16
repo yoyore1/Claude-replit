@@ -91,11 +91,27 @@ export interface AckMessage {
   detail?: string;
 }
 
+/** The runtime dragged an element to a new free position; the IDE turns this into
+ *  a "move" edit. Coordinates are px relative to the element's parent. */
+export interface MoveRequestMessage {
+  type: "move";
+  source: SourceLocation;
+  /** Drag delta in px. Applied as a `transform` translate offset so the element
+   *  keeps its layout slot (siblings DON'T reflow) and just shifts visually. */
+  dx: number;
+  dy: number;
+  /** When the dragged thing is a component's text PROP (e.g. a row's "label"),
+   *  the move is scoped to that text alone (`${field}Style`) so it moves
+   *  independently of its box. Omitted when moving a plain element / container. */
+  field?: string;
+}
+
 export type AppToIdeMessage =
   | SelectionMessage
   | HoverMessage
   | AppReadyMessage
-  | AckMessage;
+  | AckMessage
+  | MoveRequestMessage;
 
 /* ----------------------------- IDE -> app ----------------------------------- */
 
@@ -134,16 +150,22 @@ export type EditKind =
   | "backgroundColor"
   | "fontFamily"
   | "fontWeight"
-  | "prop";
+  | "prop"
+  | "move";
 
 /** A request to mutate source code at a tagged location. */
 export interface EditRequest {
   source: SourceLocation;
   kind: EditKind;
-  /** New text (kind "text"/"prop") or new color string (color kinds). */
+  /** New text (kind "text"/"prop") or new color string (color kinds). May be ""
+   *  for kind "move", which carries its data in dx/dy instead. */
   value: string;
   /** Required for kind "prop": the JSX attribute name to set (e.g. "label"). */
   prop?: string;
+  /** kind "move": drag delta in px, applied as a cumulative `transform` translate
+   *  so the element keeps its layout slot and siblings don't reflow. */
+  dx?: number;
+  dy?: number;
   /**
    * For kind "color" on a kit component whose text is a tap-editable PROP
    * (e.g. "label", "value", "title", "largeTitle"): which sub-text to recolor.

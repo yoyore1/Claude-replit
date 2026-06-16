@@ -28,7 +28,7 @@ export function applyStyleEdit(
 }
 
 /** Return (creating if needed) an inline ObjectExpression we can write keys to. */
-function ensureInlineOverride(opening: any, attrName: string): any {
+export function ensureInlineOverride(opening: any, attrName: string): any {
   const attrs: any[] = opening.attributes ?? [];
   const styleAttr = attrs.find(
     (a) => a.type === "JSXAttribute" && a.name?.name === attrName,

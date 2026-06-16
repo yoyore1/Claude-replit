@@ -6,6 +6,7 @@
     "web": "vite --port 8081 --host",
     "build:web": "vite build",
     "start": "expo start",
+    "metro": "expo start --port 8082",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "build": "echo \"runtime app\" && exit 0"

@@ -5,7 +5,7 @@
   "description": "Replit-style web IDE with a live Expo phone preview and tap-to-edit",
   "scripts": {
     "dev": "concurrently -n backend,ide -c blue,green \"pnpm --filter @cr/backend dev\" \"pnpm --filter @cr/ide-web dev\"",
-    "dev:all": "concurrently -n backend,ide,template -c blue,green,magenta \"pnpm --filter @cr/backend dev\" \"pnpm --filter @cr/ide-web dev\" \"pnpm --filter @cr/template-app web\"",
+    "dev:all": "concurrently -n backend,ide,web,metro -c blue,green,magenta,cyan \"pnpm --filter @cr/backend dev\" \"pnpm --filter @cr/ide-web dev\" \"pnpm --filter @cr/template-app web\" \"pnpm --filter @cr/template-app metro\"",
     "build:packages": "pnpm --filter \"./packages/*\" -r build",
     "test": "pnpm --filter \"./packages/*\" -r test"
   },

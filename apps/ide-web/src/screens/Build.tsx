@@ -122,6 +122,17 @@ export function Build({
           return;
         }
         if (msg.type === "selection") setSelection(msg.selection);
+        else if (msg.type === "move") {
+          // The preview dragged an element; relay it as a "move" source edit.
+          void onApply({
+            source: msg.source,
+            kind: "move",
+            value: "",
+            dx: msg.dx,
+            dy: msg.dy,
+            field: msg.field,
+          });
+        }
       };
       ws.onclose = () => {
         if (!closed) retry = setTimeout(connect, 1500);
@@ -252,9 +263,6 @@ export function Build({
           {building && bp > 0 ? ` · ${bp}%` : ""}
         </span>
         <div className="grow" />
-        <button className="btn-ghost" onClick={toggleCode}>
-          {showCode ? "Hide code" : "‹ › Code"}
-        </button>
       </header>
 
       <div className="build-layout">

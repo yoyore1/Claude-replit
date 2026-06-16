@@ -3,12 +3,14 @@ import { locateJsxElement } from "./locateNode.js";
 import { applyTextEdit } from "./applyTextEdit.js";
 import { applyStyleEdit } from "./applyStyleEdit.js";
 import { applyPropEdit } from "./applyPropEdit.js";
+import { applyMoveEdit } from "./applyMoveEdit.js";
 import type { EditRequest } from "@cr/protocol";
 
 export { locateJsxElement, jsxName } from "./locateNode.js";
 export { applyTextEdit } from "./applyTextEdit.js";
 export { applyStyleEdit } from "./applyStyleEdit.js";
 export { applyPropEdit } from "./applyPropEdit.js";
+export { applyMoveEdit } from "./applyMoveEdit.js";
 export { parse, print } from "./parse.js";
 
 export interface ApplyEditOutcome {
@@ -47,6 +49,16 @@ export function applyEdit(code: string, req: EditRequest): ApplyEditOutcome {
     } else if (req.kind === "prop") {
       if (!req.prop) return { ok: false, error: "prop name required" };
       applyPropEdit(path, req.prop, req.value);
+    } else if (req.kind === "move") {
+      // Free-drag: nudge the selection by a delta via a transform translate
+      // (element-scoped, stacks with color/font overrides; siblings don't
+      // reflow). field set => move just that text (`${field}Style`); otherwise
+      // move the element/box itself (`style`). Mirrors color scoping.
+      if (typeof req.dx !== "number" || typeof req.dy !== "number") {
+        return { ok: false, error: "move requires dx/dy" };
+      }
+      const moveAttr = req.field ? `${req.field}Style` : "style";
+      applyMoveEdit(path, moveAttr, { dx: req.dx, dy: req.dy });
     } else {
       // "color" | "fontFamily" | "fontWeight" | "backgroundColor" — element-
       // scoped style override. The text-affecting edits on a kit component whose

@@ -42,6 +42,21 @@ export function TapEditProvider({
   const [editMode, setEditMode] = useState(startInEditMode);
   const [highlight, setHighlight] =
     useState<ResolvedElement["rect"] | null>(null);
+  // Free-drag state (web only). `dragRef` holds the in-flight gesture; `dragging`
+  // toggles the "grabbing" cursor + tells pointerup to emit a move instead of a tap.
+  const dragRef = useRef<{
+    dom: HTMLElement;
+    source: ResolvedElement["source"];
+    field?: string; // set => the grabbed thing is a component text prop
+    grabX: number; // cursor offset inside the element at grab time
+    grabY: number;
+    startX: number; // pointerdown viewport point (for the move threshold)
+    startY: number;
+    width: number; // element's pixel width, captured so it won't collapse
+    height: number; // for the live ghost box
+    dragging: boolean;
+  } | null>(null);
+  const [dragging, setDragging] = useState(false);
 
   const send = useCallback((msg: AppToIdeMessage) => {
     const ws = wsRef.current;
@@ -121,8 +136,13 @@ export function TapEditProvider({
       return { x: (e as MouseEvent).clientX, y: (e as MouseEvent).clientY };
     };
 
-    // Press-initiating events: resolve + select, then swallow.
+    // Beyond this many px of movement, a press becomes a drag (not a tap).
+    const DRAG_THRESHOLD = 5;
+
+    // Press-initiating events: resolve + select, and arm a possible drag.
     const onDown = (e: MouseEvent | TouchEvent) => {
+      // Left button only for mouse (right/middle pass through to nothing).
+      if ("button" in e && (e as MouseEvent).button !== 0) return;
       const p = pointOf(e);
       if (!p) return;
       const resolved = resolveAt(p.x, p.y);
@@ -141,11 +161,69 @@ export function TapEditProvider({
           currentStyle: resolved.currentStyle,
         },
       });
+      // Arm the drag: capture the grab offset inside the element + its size.
+      if (resolved.dom) {
+        dragRef.current = {
+          dom: resolved.dom,
+          source: resolved.source,
+          field: resolved.field,
+          grabX: p.x - resolved.rect.x,
+          grabY: p.y - resolved.rect.y,
+          startX: p.x,
+          startY: p.y,
+          width: resolved.rect.width,
+          height: resolved.rect.height,
+          dragging: false,
+        };
+      }
     };
 
-    // Follow-up events: just block over a tagged element so RNW can't complete
-    // the press / fire onPress / navigate.
-    const onBlock = (e: MouseEvent | TouchEvent) => {
+    // While a press is held, promote to a drag past the threshold and let the
+    // highlight box follow the cursor as a live ghost (before HMR rewrites it).
+    const onMove = (e: MouseEvent | TouchEvent) => {
+      const d = dragRef.current;
+      if (!d) return;
+      const p = pointOf(e);
+      if (!p) return;
+      if (!d.dragging) {
+        if (Math.abs(p.x - d.startX) + Math.abs(p.y - d.startY) < DRAG_THRESHOLD)
+          return;
+        d.dragging = true;
+        setDragging(true);
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      setHighlight({
+        x: p.x - d.grabX,
+        y: p.y - d.grabY,
+        width: d.width,
+        height: d.height,
+      });
+    };
+
+    // Press end: if it was a drag, emit a move (the cursor delta, applied as a
+    // transform translate); otherwise it was a tap (already selected on down).
+    // Either way, swallow so RNW can't navigate.
+    const onUp = (e: MouseEvent | TouchEvent) => {
+      const d = dragRef.current;
+      if (d && d.dragging) {
+        const p = pointOf(e) ?? { x: d.startX, y: d.startY };
+        send({
+          type: "move",
+          source: d.source,
+          dx: Math.round(p.x - d.startX),
+          dy: Math.round(p.y - d.startY),
+          field: d.field,
+        });
+        e.preventDefault();
+        e.stopPropagation();
+        dragRef.current = null;
+        setDragging(false);
+        return;
+      }
+      dragRef.current = null;
+      setDragging(false);
+      // A plain tap: block over a tagged element so RNW can't complete the press.
       const p = pointOf(e);
       if (!p) return;
       if (!resolveAt(p.x, p.y)) return; // untagged: pass through
@@ -154,18 +232,23 @@ export function TapEditProvider({
     };
 
     const downEvents: (keyof DocumentEventMap)[] = ["mousedown", "touchstart"];
-    const blockEvents: (keyof DocumentEventMap)[] = [
+    const moveEvents: (keyof DocumentEventMap)[] = ["mousemove", "touchmove"];
+    const upEvents: (keyof DocumentEventMap)[] = [
       "mouseup",
       "touchend",
       "click",
     ];
     for (const t of downEvents) document.addEventListener(t, onDown as any, true);
-    for (const t of blockEvents) document.addEventListener(t, onBlock as any, true);
+    for (const t of moveEvents) document.addEventListener(t, onMove as any, true);
+    for (const t of upEvents) document.addEventListener(t, onUp as any, true);
     return () => {
       for (const t of downEvents)
         document.removeEventListener(t, onDown as any, true);
-      for (const t of blockEvents)
-        document.removeEventListener(t, onBlock as any, true);
+      for (const t of moveEvents)
+        document.removeEventListener(t, onMove as any, true);
+      for (const t of upEvents)
+        document.removeEventListener(t, onUp as any, true);
+      dragRef.current = null;
     };
   }, [editMode, send]);
 
@@ -191,8 +274,11 @@ export function TapEditProvider({
             width: highlight!.width,
             height: highlight!.height,
             borderWidth: 2,
-            borderColor: "#3b82f6",
-            backgroundColor: "rgba(59,130,246,0.12)",
+            borderStyle: dragging ? ("dashed" as const) : ("solid" as const),
+            borderColor: dragging ? "#22c55e" : "#3b82f6",
+            backgroundColor: dragging
+              ? "rgba(34,197,94,0.14)"
+              : "rgba(59,130,246,0.12)",
           }}
         />
       ) : null}

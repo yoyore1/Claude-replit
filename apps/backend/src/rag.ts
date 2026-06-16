@@ -78,7 +78,7 @@ export async function ragQuery(
       signal: AbortSignal.timeout(20000),
     });
     if (!res.ok) return { ok: false, error: `supabase ${res.status}: ${await res.text()}` };
-    const rows: any[] = await res.json();
+    const rows = (await res.json()) as any[];
     chunks = rows.map((r) => r.content).filter(Boolean);
   } catch (err: any) {
     return { ok: false, error: err?.message || "search failed" };
