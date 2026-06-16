@@ -16,7 +16,23 @@ TAP-TO-EDIT (critical — keep edits working):
 - Copy goes in tap-editable PROPS of kit components (label, value, title, header, footer, largeTitle, placeholder).
 - For custom content, author PLAIN literal text inside <Text>Hello</Text> (never built from variables/template strings for static copy).
 - Colors are literals "#rrggbb" or tokens (colors.x) in StyleSheet / inline style objects — never computed at runtime.
-- CUSTOM COMPONENTS must be tap-editable too: accept a \`style?: any\` prop and spread it on the component's ROOT view (so background/color overrides apply), name any text prop one of title/label/value/text/heading/subtitle/caption and render it inside a <Text>, and keep colors literal. Then users can tap and recolor/edit anything you build, not just kit components.
+- REUSED ROWS/CARDS — independence rule (critical): if you render the SAME custom component for several visible items (a CheckRow, StepperRow, ProductCard…), it MUST be built so each instance edits on its own, or editing one changes ALL of them (they share one source line). Two safe options:
+    1) PREFER the kit: use <SettingsRow label=".." value=".."/> inside <GroupedSection> — already independently editable.
+    2) If you must write a custom repeated component, follow the kit pattern EXACTLY:
+       - accept \`style\`, and a \`<field>Style\` prop for each text (e.g. \`labelStyle\`, \`valueStyle\`),
+       - spread \`style\` on the ROOT view (so the box background edits per instance),
+       - render each text from a prop named title/label/value/text/heading/subtitle/caption, marked with tapField and merging its style:
+           import { tapField } from "../../ui";
+           function PriceRow({ label, value, style, labelStyle, valueStyle }) {
+             return (
+               <View style={[styles.row, style]}>
+                 <Text {...tapField("label")} style={[styles.label, labelStyle]}>{label}</Text>
+                 <Text {...tapField("value")} style={[styles.value, valueStyle]}>{value}</Text>
+               </View>
+             );
+           }
+       - keep base colors literal in the StyleSheet. NEVER hardcode a literal in the rendered text (write {label}, not "Bananas") — a hardcoded literal in a reused component makes every instance show the same edited text.
+  A single-use custom component (rendered once) needs none of this. For a FIXED set rendered inline (no component), each element already has its own source line and is independent.
 - INDEPENDENT EDITS — every visible item must be its OWN element with its OWN literal, so tapping one edits ONLY that one. For a FIXED, known set of items (tabs, folders, menu/list rows, feature cards, nav items) DO NOT use .map()/loops/arrays — write each item out as a separate element with literal copy. Example: write four rows
     <SettingsRow label="Personal" .../>
     <SettingsRow label="Work" .../>

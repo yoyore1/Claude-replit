@@ -1,10 +1,23 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { EditRequest, Selection } from "@cr/protocol";
 
+const FONT_SAMPLE = "Hello";
+
+// Fonts available on iOS (Expo Go) AND the web preview. The first group renders
+// identically on both; the iOS-native ones (Palatino, Avenir, Menlo…) render on
+// the phone and fall back gracefully in the browser preview.
 const FONTS = [
   { label: "System", value: "System" },
-  { label: "Serif", value: "Georgia" },
-  { label: "Mono", value: "Courier New" },
+  { label: "Georgia (serif)", value: "Georgia" },
+  { label: "Times (serif)", value: "Times New Roman" },
+  { label: "Palatino (serif)", value: "Palatino" },
+  { label: "Helvetica", value: "Helvetica Neue" },
+  { label: "Avenir", value: "Avenir Next" },
+  { label: "Arial", value: "Arial" },
+  { label: "Trebuchet", value: "Trebuchet MS" },
+  { label: "Verdana", value: "Verdana" },
+  { label: "Courier (mono)", value: "Courier New" },
+  { label: "Menlo (mono)", value: "Menlo" },
 ];
 
 /**
@@ -30,6 +43,8 @@ export function InlineEditor({
   const [bg, setBg] = useState("#ffffff");
   const [font, setFont] = useState("System");
   const [weight, setWeight] = useState("normal");
+  const [fontOpen, setFontOpen] = useState(false);
+  const fontRef = useRef<HTMLDivElement>(null);
 
   // Reseed when a different element is tapped.
   useEffect(() => {
@@ -39,7 +54,26 @@ export function InlineEditor({
     setBg(selection.currentStyle.backgroundColor ?? "#ffffff");
     setFont(selection.currentStyle.fontFamily ?? "System");
     setWeight(selection.currentStyle.fontWeight ?? "normal");
+    setFontOpen(false);
   }, [selection?.elementId]);
+
+  // Close the font menu on outside click / Escape.
+  useEffect(() => {
+    if (!fontOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (fontRef.current && !fontRef.current.contains(e.target as Node))
+        setFontOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFontOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [fontOpen]);
 
   if (!selection) return null;
 
@@ -87,20 +121,47 @@ export function InlineEditor({
         <>
           <label className="field">
             <span>Font</span>
-            <select
-              className="edit-select"
-              value={font}
-              onChange={(e) => {
-                setFont(e.target.value);
-                applyStyle("fontFamily", e.target.value);
-              }}
-            >
-              {FONTS.map((f) => (
-                <option key={f.value} value={f.value}>
-                  {f.label}
-                </option>
-              ))}
-            </select>
+            <div className="font-select-wrap" ref={fontRef}>
+              <button
+                type="button"
+                className="font-select"
+                onClick={() => setFontOpen((o) => !o)}
+              >
+                <span className="font-sample" style={{ fontFamily: font }}>
+                  {FONT_SAMPLE}
+                </span>
+                <span className="font-current">
+                  {FONTS.find((f) => f.value === font)?.label ?? font}
+                </span>
+                <span className="font-caret">⌄</span>
+              </button>
+              {fontOpen && (
+                <div className="font-menu">
+                  {FONTS.map((f) => (
+                    <button
+                      type="button"
+                      key={f.value}
+                      className={
+                        "font-menu-item" + (f.value === font ? " on" : "")
+                      }
+                      onClick={() => {
+                        setFont(f.value);
+                        applyStyle("fontFamily", f.value);
+                        setFontOpen(false);
+                      }}
+                    >
+                      <span
+                        className="font-sample"
+                        style={{ fontFamily: f.value }}
+                      >
+                        {FONT_SAMPLE}
+                      </span>
+                      <span className="font-name">{f.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </label>
 
           <label className="field">

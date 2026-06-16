@@ -1801,6 +1801,83 @@ span.muted.small {
   padding: 8px 10px;
   font-size: 14px;
 }
+
+/* Custom font picker with per-font sample previews (native <option> can't be
+   font-styled). */
+.font-select-wrap {
+  position: relative;
+}
+.font-select {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+}
+.font-select .font-sample {
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text);
+}
+.font-select .font-current {
+  color: var(--muted);
+  font-size: 12px;
+}
+.font-select .font-caret {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 13px;
+}
+.font-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  max-height: 248px;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.22);
+  padding: 4px;
+}
+.font-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  background: none;
+  border: none;
+  border-radius: 7px;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: left;
+}
+.font-menu-item:hover {
+  background: var(--bg);
+}
+.font-menu-item.on {
+  background: var(--bg);
+}
+.font-menu-item .font-sample {
+  font-size: 17px;
+  line-height: 1.1;
+  color: var(--text);
+  min-width: 52px;
+}
+.font-menu-item .font-name {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+}
 .seg-toggle {
   display: flex;
   gap: 6px;

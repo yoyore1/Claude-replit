@@ -175,11 +175,22 @@ export function resolveElementAtPoint(
   };
 }
 
-/** Collapse a computed CSS font stack into one of the menu's coarse options. */
+/** Map a computed CSS font stack onto one of the font-menu options (best effort,
+ * so re-tapping an element seeds the dropdown to its current font). */
 function fontFamilyOption(family: string): string {
   const f = (family || "").toLowerCase();
-  if (/courier|mono|menlo|consolas/.test(f)) return "Courier New";
-  if (/georgia|times|serif/.test(f) && !/sans/.test(f)) return "Georgia";
+  if (/menlo/.test(f)) return "Menlo";
+  if (/courier|consolas|mono/.test(f)) return "Courier New";
+  if (/georgia/.test(f)) return "Georgia";
+  if (/times/.test(f)) return "Times New Roman";
+  if (/palatino/.test(f)) return "Palatino";
+  if (/baskerville/.test(f)) return "Baskerville";
+  if (/avenir/.test(f)) return "Avenir Next";
+  if (/trebuchet/.test(f)) return "Trebuchet MS";
+  if (/verdana/.test(f)) return "Verdana";
+  if (/helvetica/.test(f)) return "Helvetica Neue";
+  if (/arial/.test(f)) return "Arial";
+  if (/serif/.test(f) && !/sans/.test(f)) return "Georgia";
   return "System";
 }
 

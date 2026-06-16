@@ -12,3 +12,6 @@ export { SearchField } from "./SearchField";
 export { Sheet } from "./Sheet";
 export { appAlert, actionMenu, share } from "./native";
 export type { AlertButton } from "./native";
+// Mark a custom component's prop-driven <Text> so tap-to-edit resolves to THIS
+// instance (each row edits independently). See SettingsRow for the pattern.
+export { tapField } from "@cr/tap-edit-runtime";

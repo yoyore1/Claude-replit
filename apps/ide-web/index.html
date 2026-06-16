@@ -11,6 +11,14 @@
       media="print"
       onload="this.media='all'"
     />
+    <!-- Stand-ins for the iOS-exclusive fonts so the font-picker previews render
+         them (same faces the phone preview uses). -->
+    <style>
+      @font-face { font-family: "Helvetica Neue"; src: url("/fonts/inter.woff2") format("woff2"); font-display: swap; }
+      @font-face { font-family: "Palatino"; src: url("/fonts/lora.woff2") format("woff2"); font-display: swap; }
+      @font-face { font-family: "Avenir Next"; src: url("/fonts/mulish.woff2") format("woff2"); font-display: swap; }
+      @font-face { font-family: "Menlo"; src: url("/fonts/roboto-mono.woff2") format("woff2"); font-display: swap; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
