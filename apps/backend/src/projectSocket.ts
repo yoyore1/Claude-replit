@@ -219,13 +219,22 @@ export class ProjectSocket {
         suggestions: { mode: "wrapup", items: [] },
       });
     } else {
+      // Pin the progress to a fixed length and derive the step from how many
+      // answers we've taken — the model's own n/m can wobble (it decides how many
+      // questions to ask on the fly).
+      const INTERVIEW_STEPS = 4;
+      const answered = this.historyFor(projectId, "interview").filter(
+        (m) => m.role === "user",
+      ).length;
       this.broadcast(projectId, {
         type: "interview.suggestions",
         suggestions: {
           mode: turn.suggestionMode ?? "pick",
           items: turn.suggestions ?? [],
-          step: turn.step,
-          total: turn.total,
+          step: Math.min(answered, INTERVIEW_STEPS),
+          total: INTERVIEW_STEPS,
+          pick: turn.appablePick,
+          swatches: turn.swatches,
         },
       });
     }

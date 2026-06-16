@@ -146,7 +146,7 @@ export function Interview({
   const sugg = s.interviewSuggestions;
   const isWrapup = sugg?.mode === "wrapup";
   const isVibe = sugg?.mode === "vibe";
-  const total = sugg?.total ?? 3;
+  const total = sugg?.total ?? 4;
   const step = isWrapup ? total : sugg?.step ?? 1;
   const started = s.interview.length > 0;
 
@@ -232,6 +232,9 @@ export function Interview({
             <div className="vibe-row">
               {sugg.items.map((item, i) => {
                 const meta = VIBE_META[item];
+                // Prefer the contextual colors the model chose for THIS app;
+                // fall back to the known presets, then a neutral default.
+                const sw = sugg.swatches?.[item] ?? meta?.swatch ?? ["#f5f1ea", "#1c1814"];
                 return (
                   <button
                     key={`${item}-${i}`}
@@ -239,8 +242,8 @@ export function Interview({
                     onClick={() => sendAnswer(item)}
                   >
                     <span className="vibe-swatch">
-                      <span style={{ background: meta?.swatch[0] ?? "#f5f1ea" }} />
-                      <span style={{ background: meta?.swatch[1] ?? "#1c1814" }} />
+                      <span style={{ background: sw[0] ?? "#f5f1ea" }} />
+                      <span style={{ background: sw[1] ?? "#1c1814" }} />
                     </span>
                     <b>{item}</b>
                     {meta?.caption && <span className="vibe-caption">{meta.caption}</span>}
@@ -248,6 +251,13 @@ export function Interview({
                 );
               })}
             </div>
+            {sugg.pick && (
+              <div className="suggest-row">
+                <button className="chip ghost" onClick={() => sendAnswer(sugg.pick!)}>
+                  {APPABLE_PICK}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -269,9 +279,12 @@ export function Interview({
                   {item}
                 </button>
               ))}
-              {/* Always the dedicated red "Let Appable pick" pill — Appable
-                  chooses the single best option and moves on. */}
-              <button className="chip ghost" onClick={() => sendAnswer(APPABLE_PICK)}>
+              {/* Dedicated red "Let Appable pick" pill — uses the answer Appable
+                  precomputed for this question (instant, no extra wait). */}
+              <button
+                className="chip ghost"
+                onClick={() => sendAnswer(sugg?.pick || APPABLE_PICK)}
+              >
                 {APPABLE_PICK}
               </button>
             </div>

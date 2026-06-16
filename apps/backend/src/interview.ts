@@ -26,6 +26,11 @@ export interface InterviewTurn {
   total?: number;
   /** How the suggestions should be presented on the frontend. */
   suggestionMode?: "pick" | "vibe";
+  /** The answer Appable would choose for this question — precomputed in the SAME
+   *  turn so "Let Appable pick" is instant (no extra round-trip). */
+  appablePick?: string;
+  /** For the look question: per-vibe swatch colors [main, background]. */
+  swatches?: Record<string, string[]>;
 }
 
 const SYSTEM: ChatMessage = {
@@ -36,65 +41,77 @@ not be technical at all — turn an idea into a real mobile app. Be warm, encour
 GOLDEN RULES
 - NEVER use the words: screen, feature, UI, UX, component, interface, navigation, backend. No tech talk.
 - Talk about the person's real life and what they want — not about software.
-- Ask exactly ONE question at a time. Ask AT MOST 3 questions total. Keep it short and breezy.
-- Never ask something you can already infer from what they said.
+- Ask exactly ONE question at a time. Ask 3-4 questions total. Keep it short and breezy.
+- Never ask something you can already infer from what they said — if their idea already answers a
+  question, SKIP it and move on.
+- Silently figure out what kind of app this is FIRST, then tailor every question, every option, the
+  name ideas, and the colors to THAT specific app.
 
 FIRST REPLY
 Your very first reply must do two things: (1) warmly restate their idea in ONE sentence so they feel
 understood ("Love it — a booking app for your dog-walking business."), then (2) ask question 1.
 
-PICK SMART QUESTIONS
-Silently figure out what kind of app this is (a tracker, a small business / booking app, something
-social, a shop, a planner or list, a journal / content app, etc.) and ask only the 2-3 questions that
-truly matter for THAT kind of app. Examples of good, jargon-free questions:
-- Tracker: "What do you most want to keep track of?"
-- Business / booking: "Who books with you, and what do they book?"
-- Planner / list: "What are you trying to stay on top of?"
-- Social: "Who do you want to connect in here?"
-- Shop: "What are you selling, and who's buying?"
+WHAT TO ASK (in a natural order, ~3-4 total — skip any the idea already answers)
+1. THE HEART of this kind of app — the one thing that matters most. Examples:
+   - Tracker: "What do you most want to keep track of?"
+   - Business / booking: "Who books with you, and what do they book?"
+   - Shop: "What are you selling, and who's buying?"
+2. THE MAIN THINGS they want to be able to DO — everyday actions in plain words ("add a prayer time",
+   "log a workout", "save a recipe"). SKIP this if their idea already spells the main things out.
+   These answers can be multi-picked, so offer a handful of real ones.
+3. THE NAME — "What should we call it?" Offer a few names that genuinely fit this app.
+4. THE LOOK — always last (see THE LOOK).
 
 QUESTION FORMAT (follow EXACTLY every turn)
-Write your question as plain sentences FIRST. Then a step marker line. Then ONE options line.
-The [[OPTIONS]] line contains ONLY tappable ANSWERS the user might give — NEVER put your
-question, instructions, or any extra text on the [[OPTIONS]] line or after it.
+Question as plain sentences FIRST. Then a step line. Then ONE options line. Then ONE pick line.
+[[STEP]] 1/4
+[[OPTIONS]] real answer 1 | real answer 2 | real answer 3
+[[PICK]] the single best of those answers for THIS app
 
 Exact example of a good first turn:
 Love it — a booking app for your dog-walking business. Who books with you, and what do they book?
-[[STEP]] 1/3
+[[STEP]] 1/4
 [[OPTIONS]] Just me, to stay organized | My customers, for walks | My whole team
+[[PICK]] My customers, for walks
 
-- Options must be CONCRETE, full phrases in the user's own voice ("Just me, to stay on top of things",
-  "Me and my customers"), NOT abstract one-word stubs. Give exactly 3-4 REAL answers.
-- Do NOT add a "You pick for me" / "Let Appable pick" / "Surprise me" / "Not sure" option — the app
-  shows that button automatically. The [[OPTIONS]] line is ONLY genuine answers.
+- Options must be CONCRETE, full phrases in the user's own voice, 3-4 REAL answers. For the NAME
+  question they're candidate names; for the MAIN THINGS question they're everyday actions.
+- [[PICK]] is REQUIRED on every question: the one answer Appable would choose if it had to decide —
+  genuinely the best fit for this app, not random. The app offers a "Let Appable pick" button that
+  uses it, so it must be a real, complete answer (one of the options, or an even better one).
+- Do NOT add a "You pick for me" / "Let Appable pick" / "Not sure" option in [[OPTIONS]] — the app
+  shows that button automatically and uses your [[PICK]].
+- If the user's answer comes back as your suggested pick, just treat it as their choice and continue.
 
-WHEN THE USER SAYS "Let Appable pick"
-If their answer is "Let Appable pick" (or similar), DON'T re-ask. Silently choose the single best,
-most appropriate answer to THAT question for this kind of app, briefly say what you picked in a
-natural way ("I'll set it up for both of you, then."), and move straight to the next question.
+THE LOOK (use once, as the LAST question) — the colors MUST suit what they're building
+Never ask about colors as hex. Ask a warm question ("Last thing — what should it feel like?") and
+offer 3-4 looks that FIT THIS app, each with two hex colors: a main color + a soft background. Match
+real-world meaning — e.g. an Islamic / Muslim app → greens; finance → deep blue or green; a kids app
+→ bright & playful; wellness → calm naturals; luxury → black & gold; food → warm appetizing tones.
+Use this EXACT marker, "Name ~ #mainHex,#bgHex" per look:
+[[STEP]] 4/4
+[[VIBE]] Serene Green ~ #1f7a4d,#f1f8f3 | Warm Gold ~ #b8860b,#fffdf5 | Calm Cream ~ #6b5b45,#faf6ef
+[[PICK]] Serene Green
+Choose colors that genuinely reflect the app's subject — do NOT reuse the same generic palette for
+every app.
 
-THE VIBE QUESTION (use exactly once, as your last question)
-For the look, never ask about colors directly. Instead ask one playful question like
-"Last thing — what vibe should it have?" and offer vibes with this special marker:
-[[STEP]] 3/3
-[[VIBE]] Calm & minimal | Bold & playful | Warm & cozy | Sleek & dark
-Map their chosen vibe to colors yourself in the final spec.
-
-WHEN YOU HAVE ENOUGH (after ~3 answers)
+WHEN YOU HAVE ENOUGH (after the questions)
 Reply with EXACTLY a line containing:
 [[READY]]
 followed by ONE JSON object (no markdown fences) with these keys:
 {"name": string, "tagline": string, "description": string, "audience": string, "vibe": string,
  "primaryColor": "#rrggbb", "backgroundColor": "#rrggbb",
  "screens": [{"name": string, "purpose": string}], "features": [string]}
-Pick a friendly name, sensible screens, and colors that match the chosen vibe. Fill in anything not
-discussed with tasteful defaults — never block on a missing answer.`,
+Use the name they chose, the main things they picked as features, sensible screens, and set
+primaryColor/backgroundColor to the chosen look's two colors — which must suit the app's domain.
+Fill anything not discussed with tasteful, on-theme defaults — never block on a missing answer.`,
 };
 
 const READY = "[[READY]]";
 const OPTIONS = "[[OPTIONS]]";
 const VIBE = "[[VIBE]]";
 const STEP = "[[STEP]]";
+const PICK = "[[PICK]]";
 
 interface ParsedTurn {
   reply: string;
@@ -102,6 +119,8 @@ interface ParsedTurn {
   suggestionMode?: "pick" | "vibe";
   step?: number;
   total?: number;
+  appablePick?: string;
+  swatches?: Record<string, string[]>;
 }
 
 /**
@@ -122,6 +141,15 @@ function parseTurn(text: string): ParsedTurn {
     working = working.replace(stepMatch[0], "");
   }
 
+  // Pull the "[[PICK]] <answer>" line (Appable's precomputed best answer) out
+  // BEFORE we parse options, so it never leaks into the question text.
+  let appablePick: string | undefined;
+  const pickMatch = working.match(/\[\[PICK\]\]\s*([^\n]+)/i);
+  if (pickMatch) {
+    appablePick = pickMatch[1].split("|")[0].trim() || undefined;
+    working = working.replace(pickMatch[0], "");
+  }
+
   // Find whichever options marker appears first.
   const optIdx = working.indexOf(OPTIONS);
   const vibeIdx = working.indexOf(VIBE);
@@ -139,7 +167,7 @@ function parseTurn(text: string): ParsedTurn {
   }
 
   if (idx === -1) {
-    return { reply: working.trim(), step, total };
+    return { reply: working.trim(), step, total, appablePick };
   }
 
   // Text before the marker is the question. The options are ONLY the first line
@@ -155,13 +183,29 @@ function parseTurn(text: string): ParsedTurn {
   const rawOptions = optionsLine
     .split("|")
     .map((s) => s.trim())
-    .filter((s) => s.length > 0 && s.length < 70);
+    .filter((s) => s.length > 0 && s.length < 80);
+
+  // For the look question, each option may carry its swatch as "Name ~ #c1,#c2".
+  // Split the label from the colors and collect a label→[main,bg] map.
+  const swatches: Record<string, string[]> = {};
+  const splitVibe = (raw: string): string => {
+    if (mode !== "vibe" || !raw.includes("~")) return raw;
+    const [labelPart, colorPart] = raw.split("~");
+    const label = labelPart.trim();
+    const colors = (colorPart || "")
+      .split(",")
+      .map((c) => c.trim())
+      .filter((c) => /^#[0-9a-fA-F]{3,8}$/.test(c));
+    if (label && colors.length) swatches[label] = colors.slice(0, 2);
+    return label;
+  };
+  const cleaned = rawOptions.map(splitVibe);
 
   // Defensive: a smaller model sometimes slips its question INTO the options
   // line. A real tappable answer is never phrased as a question, so peel any
   // "...?" item out and treat it as the question text instead of a chip.
-  const leakedQuestions = rawOptions.filter((s) => s.endsWith("?"));
-  const suggestions = rawOptions.filter((s) => !s.endsWith("?")).slice(0, 5);
+  const leakedQuestions = cleaned.filter((s) => s.endsWith("?"));
+  const suggestions = cleaned.filter((s) => !s.endsWith("?")).slice(0, 5);
 
   const reply = [before, ...leakedQuestions, trailing]
     .filter(Boolean)
@@ -173,6 +217,8 @@ function parseTurn(text: string): ParsedTurn {
     suggestionMode: suggestions.length ? mode : undefined,
     step,
     total,
+    appablePick,
+    swatches: Object.keys(swatches).length ? swatches : undefined,
   };
 }
 
@@ -187,7 +233,10 @@ export async function interviewTurn(
   const reply = await chat(interviewerConfig(), {
     messages: [SYSTEM, ...history],
     temperature: 0.6,
-    maxTokens: 800,
+    // Generous budget: this is a reasoning model (reasoning_content is separate),
+    // and too small a budget makes it spill its thinking into the reply / truncate
+    // the [[OPTIONS]]/[[PICK]] block.
+    maxTokens: 2200,
   });
 
   const idx = reply.indexOf(READY);
@@ -200,6 +249,8 @@ export async function interviewTurn(
       suggestionMode: parsed.suggestionMode,
       step: parsed.step,
       total: parsed.total,
+      appablePick: parsed.appablePick,
+      swatches: parsed.swatches,
     };
   }
 
@@ -234,7 +285,7 @@ Pick sensible values for anything not discussed.`,
     const reply = await chat(interviewerConfig(), {
       messages: [SYSTEM, ...history, nudge],
       temperature: 0.4,
-      maxTokens: 800,
+      maxTokens: 2200,
     });
     const spec = extractJson<AppSpec>(reply);
     if (spec?.name) return spec;

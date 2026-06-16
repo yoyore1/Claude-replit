@@ -25,6 +25,10 @@ export interface InterviewSuggestions {
   items: string[];
   step?: number;
   total?: number;
+  /** Appable's precomputed best answer (instant "Let Appable pick"). */
+  pick?: string;
+  /** For the look question: per-vibe swatch colors [main, background]. */
+  swatches?: Record<string, string[]>;
 }
 
 export interface Preview {
