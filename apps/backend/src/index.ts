@@ -13,6 +13,10 @@ import { applySourceEdit } from "./editService.js";
 import { interviewTurn, finalizeSpec, type AppSpec } from "./interview.js";
 import { buildApp } from "./build.js";
 import { aiEdit } from "./aiEdit.js";
+import { runAI } from "./ai.js";
+import { proxyFetch } from "./proxy.js";
+import { generateImage, textToSpeech, transcribe, embed } from "./deepinfra.js";
+import { indexDoc, ragQuery } from "./rag.js";
 import { Hub } from "./wsHub.js";
 import { ProjectSocket } from "./projectSocket.js";
 import { PROJECT_ROOT } from "./projectRoot.js";
@@ -317,6 +321,90 @@ app.post<{ Body: { source: SourceLocation; instruction: string } }>(
     const result = await aiEdit({ source, instruction });
     if (!result.ok) return reply.code(502).send(result);
     return result;
+  },
+);
+
+// ── Runtime hub for GENERATED apps: AI + a guarded external-fetch proxy ──
+app.post<{ Body: { prompt?: string; image?: string } }>(
+  "/api/ai",
+  async (req, reply) => {
+    const { prompt, image } = req.body ?? {};
+    if (!prompt) return reply.code(400).send({ ok: false, error: "prompt required" });
+    const result = await runAI({ prompt, imageDataUrl: image });
+    if (!result.ok) return reply.code(502).send(result);
+    return result;
+  },
+);
+
+app.post<{
+  Body: {
+    url?: string;
+    method?: string;
+    headers?: Record<string, string>;
+    body?: unknown;
+  };
+}>("/api/fetch", async (req, reply) => {
+  const { url, method, headers, body } = req.body ?? {};
+  if (!url) return reply.code(400).send({ ok: false, error: "url required" });
+  const result = await proxyFetch({ url, method, headers, body });
+  if (!result.ok && result.error && result.status == null)
+    return reply.code(400).send(result);
+  return result;
+});
+
+// Image generation (Seedream), TTS (Kokoro), STT (Whisper), embeddings (Qwen3).
+app.post<{ Body: { prompt?: string } }>("/api/image", async (req, reply) => {
+  const { prompt } = req.body ?? {};
+  if (!prompt) return reply.code(400).send({ ok: false, error: "prompt required" });
+  const r = await generateImage(prompt);
+  if (!r.ok) return reply.code(502).send(r);
+  return r;
+});
+
+app.post<{ Body: { text?: string } }>("/api/tts", async (req, reply) => {
+  const { text } = req.body ?? {};
+  if (!text) return reply.code(400).send({ ok: false, error: "text required" });
+  const r = await textToSpeech(text);
+  if (!r.ok) return reply.code(502).send(r);
+  return r;
+});
+
+app.post<{ Body: { audio?: string } }>("/api/stt", async (req, reply) => {
+  const { audio } = req.body ?? {};
+  if (!audio) return reply.code(400).send({ ok: false, error: "audio required" });
+  const r = await transcribe(audio);
+  if (!r.ok) return reply.code(502).send(r);
+  return r;
+});
+
+app.post<{ Body: { input?: string[] } }>("/api/embed", async (req, reply) => {
+  const { input } = req.body ?? {};
+  if (!input?.length) return reply.code(400).send({ ok: false, error: "input required" });
+  const r = await embed(input);
+  if (!r.ok) return reply.code(502).send(r);
+  return r;
+});
+
+// RAG: index a document, and ask grounded questions — scoped per app by appId.
+app.post<{ Body: { content?: string; appId?: string } }>(
+  "/api/rag/index",
+  async (req, reply) => {
+    const { content, appId } = req.body ?? {};
+    if (!content) return reply.code(400).send({ ok: false, error: "content required" });
+    const r = await indexDoc(content, appId || "default");
+    if (!r.ok) return reply.code(502).send(r);
+    return r;
+  },
+);
+
+app.post<{ Body: { question?: string; appId?: string } }>(
+  "/api/rag/query",
+  async (req, reply) => {
+    const { question, appId } = req.body ?? {};
+    if (!question) return reply.code(400).send({ ok: false, error: "question required" });
+    const r = await ragQuery(question, appId || "default");
+    if (!r.ok) return reply.code(502).send(r);
+    return r;
   },
 );
 

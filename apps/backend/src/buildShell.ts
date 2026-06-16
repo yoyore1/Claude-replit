@@ -19,7 +19,17 @@ function lit(s: string): string {
   return (s || "").replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-export function renderAppShell(bp: Blueprint): string {
+export function renderAppShell(bp: Blueprint, appId?: string): string {
+  // Stable per-app id so cloud data (RAG) stays isolated between apps. Prefer the
+  // project id; fall back to a slug of the app name.
+  const stableAppId =
+    (appId || "").trim() ||
+    (bp.appName || "app")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") ||
+    "app";
+
   const imports = bp.screens
     .map((s) => `import ${s.id} from "./${s.file.replace(/\.tsx$/, "")}";`)
     .join("\n");
@@ -57,15 +67,38 @@ ${tabBarInner}
       ) : null}`
     : "";
 
+  // Seed the persisted data store from the blueprint's entities (each row gets a
+  // stable id). Apps with no data model skip the store entirely.
+  const entities = bp.entities ?? [];
+  const hasData = entities.length > 0;
+  const seed: Record<string, any[]> = {};
+  for (const e of entities) {
+    seed[e.name] = (e.seed ?? []).map((row, i) => ({
+      id: (row as any)?.id ?? `${e.name.toLowerCase()}_${i + 1}`,
+      ...(row as Record<string, any>),
+    }));
+  }
+  const storeImport = hasData ? ", StoreProvider" : "";
+  const seedConst = hasData
+    ? `\nconst SEED = ${JSON.stringify(seed)};\n`
+    : "";
+  const appBody = hasData
+    ? `    <StoreProvider seed={SEED}>
+      <AppInner />
+    </StoreProvider>`
+    : `    <AppInner />`;
+
   return `import React, { useState } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { Icon, colors } from "./ui";
+import { Icon, colors, setAppId${storeImport} } from "./ui";
 ${imports}
 
 // Pin the UI kit's tint to this app's accent color.
 colors.tint = "${lit(bp.accent)}";
-
+// Scope this app's cloud data (RAG) to its own id.
+setAppId("${lit(stableAppId)}");
+${seedConst}
 const SCREENS = { ${registry} };
 
 function AppInner() {
@@ -99,7 +132,7 @@ ${tabBarSection}
 export default function App() {
   return (
     <SafeAreaProvider>
-      <AppInner />
+${appBody}
     </SafeAreaProvider>
   );
 }

@@ -15,3 +15,34 @@ export type { AlertButton } from "./native";
 // Mark a custom component's prop-driven <Text> so tap-to-edit resolves to THIS
 // instance (each row edits independently). See SettingsRow for the pattern.
 export { tapField } from "@cr/tap-edit-runtime";
+// Real, persisted, shared app data: <StoreProvider> at the root + useEntity() in
+// screens. Lets generated apps store and mutate data, not just render samples.
+export { StoreProvider, useEntity } from "./store";
+export type { EntityApi } from "./store";
+// Device capabilities (camera/photo, reminders, location, motion) with simple,
+// safe wrappers that work on device and in the web preview.
+export {
+  pickImage,
+  scheduleReminder,
+  cancelReminder,
+  useLocation,
+  useMotion,
+} from "./device";
+export type { Coords } from "./device";
+// Internet + AI: fetch any public API (proxied), call the model, generate images,
+// transcribe audio, embeddings, and RAG over your own docs.
+export {
+  apiGet,
+  apiPost,
+  askAI,
+  classifyImage,
+  apiBase,
+  generateImage,
+  transcribe,
+  embed,
+  indexDoc,
+  askDocs,
+  setAppId,
+} from "./net";
+// Voice: speak text aloud (TTS) and record + transcribe the mic (STT).
+export { speak, useVoiceInput } from "./media";

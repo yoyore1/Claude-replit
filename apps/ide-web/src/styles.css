@@ -1807,7 +1807,9 @@ span.muted.small {
 .font-select-wrap {
   position: relative;
 }
-.font-select {
+/* Scoped under .font-select-wrap / .font-menu so these win over the generic
+   `.field button { background: var(--accent) }` rule (else items render red). */
+.font-select-wrap .font-select {
   width: 100%;
   display: flex;
   align-items: center;
@@ -1849,7 +1851,7 @@ span.muted.small {
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.22);
   padding: 4px;
 }
-.font-menu-item {
+.font-menu .font-menu-item {
   width: 100%;
   display: flex;
   align-items: baseline;
@@ -1861,19 +1863,19 @@ span.muted.small {
   cursor: pointer;
   text-align: left;
 }
-.font-menu-item:hover {
+.font-menu .font-menu-item:hover {
   background: var(--bg);
 }
-.font-menu-item.on {
+.font-menu .font-menu-item.on {
   background: var(--bg);
 }
-.font-menu-item .font-sample {
+.font-menu .font-menu-item .font-sample {
   font-size: 17px;
   line-height: 1.1;
   color: var(--text);
   min-width: 52px;
 }
-.font-menu-item .font-name {
+.font-menu .font-menu-item .font-name {
   margin-left: auto;
   font-size: 12px;
   color: var(--muted);

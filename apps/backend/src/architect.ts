@@ -27,6 +27,20 @@ export interface BlueprintScreen {
   components: string[];
   /** Optional seed data so the screen looks alive. */
   sampleData?: unknown;
+  /** Entity names this screen DISPLAYS (wired via useEntity for real data). */
+  reads?: string[];
+  /** Entity names this screen CREATES / EDITS / DELETES. */
+  writes?: string[];
+}
+
+/** A real data collection the app stores, shares across screens, and persists. */
+export interface BlueprintEntity {
+  /** PascalCase singular collection name, e.g. "Habit", "Note". */
+  name: string;
+  /** Field names + a coarse type hint: text | number | bool | date. */
+  fields: { name: string; type: string }[];
+  /** A few seed rows so the app looks alive on first open. */
+  seed: Record<string, any>[];
 }
 
 export interface Blueprint {
@@ -36,9 +50,27 @@ export interface Blueprint {
   /** Screen ids that are bottom-tab destinations, in display order. */
   tabs: string[];
   screens: BlueprintScreen[];
+  /** The app's data model — the collections it actually stores and mutates.
+   *  Empty for pure stateless tools (e.g. a tip calculator). */
+  entities: BlueprintEntity[];
+  /** Device features the app needs: "camera" | "notifications" | "location" | "motion". */
+  capabilities: string[];
   /** Smart additions made beyond what the user asked for (for the build log). */
   addedExtras: string[];
 }
+
+/** Capabilities the kit can wire up (see ui/device.ts, ui/net.ts, ui/media.ts). */
+const CAPABILITIES = [
+  "camera",
+  "notifications",
+  "location",
+  "motion",
+  "ai",
+  "internet",
+  "images",
+  "voice",
+  "docs",
+];
 
 const MAX_SCREENS = 7;
 
@@ -61,11 +93,39 @@ Examples of good instincts:
 - A recipe box → Recipes (tab), Recipe detail (drill-in), Add recipe (tab), Shopping list (tab), Settings (tab).
 - A simple one-purpose tool → maybe just ONE screen, no tabs.
 
+DATA MODEL — this app stores REAL data, not just mockups.
+- Design the collections (ENTITIES) the app actually needs: a habit tracker → "Habit"; a
+  notes app → "Note"; a budget → "Transaction". Give each a few fields (name + coarse type:
+  text | number | bool | date) and 2-4 realistic SEED rows so it looks alive on first open.
+- Mark, per screen, which entities it READS (displays) and WRITES (adds/edits/deletes).
+- A pure stateless tool (e.g. a tip calculator, a unit converter) can have NO entities —
+  use an empty "entities" array then.
+- Keep it lean: 0-5 entities total. Model only what the app truly needs.
+
+DEVICE FEATURES — the app can use the phone's hardware. List in "capabilities" ONLY the ones
+the idea genuinely needs (omit otherwise):
+- "camera" — take or pick photos (e.g. a photo journal, "scan" something)
+- "notifications" — local reminders / alarms (e.g. habit nudges, an alarm)
+- "location" — GPS coordinates (e.g. nearby, check-in, run tracker)
+- "motion" — accelerometer / shake (e.g. step counter, shake-to-act)
+- "ai" — ask a model questions or about a photo (e.g. recognize/identify, categorize, summarize,
+  generate text). Pair with "camera" for "scan/identify what's in a photo" features.
+- "internet" — fetch LIVE data from public APIs (e.g. weather, news, prices, sports, maps).
+- "images" — GENERATE images from a text prompt (e.g. art, avatars, mockups, scene ideas).
+- "voice" — speak text aloud (TTS) and/or take voice input transcribed to text (STT).
+- "docs" — RAG: answer questions grounded in documents the user adds (a knowledge base / "chat
+  with my notes"). Needs Supabase configured server-side.
+Design screens/flows that actually use them when relevant (e.g. an alarm app → "notifications";
+a photo-identify app → "camera" + "ai"; a weather app → "internet"; an art app → "images";
+a voice notes app → "voice"; a study/notes Q&A app → "docs").
+
 RULES
 - Bottom TABS are top-level destinations (2-5 of them). DETAIL screens (isDetail:true) are reached
   by tapping something (e.g. a list row → its detail) and are NOT in the tab bar.
 - Total screens MUST be <= ${MAX_SCREENS}. Pick the RIGHT number for the app — do not pad.
 - Every screen id is PascalCase and unique (e.g. "Home", "ProductDetail").
+- Entity names are PascalCase singular (e.g. "Habit", "Note"). Screen reads/writes must
+  reference these exact names.
 - Tab icons come from this Ionicons set: ${TAB_ICONS}.
 - Put anything you ADDED beyond the user's explicit ask into "addedExtras" as short phrases.
 - Choose an accent and background hex that match the requested vibe.
@@ -76,9 +136,15 @@ OUTPUT: reply with ONLY a JSON object (no markdown fences) of this exact shape:
   "accent": "#rrggbb",
   "background": "#rrggbb",
   "tabs": ["ScreenId", ...],
+  "capabilities": ["camera", "notifications"],
+  "entities": [
+    {"name":"Habit","fields":[{"name":"title","type":"text"},{"name":"streak","type":"number"},{"name":"doneToday","type":"bool"}],
+     "seed":[{"title":"Drink water","streak":4,"doneToday":false},{"title":"Read","streak":12,"doneToday":true}]}
+  ],
   "screens": [
     {"id":"Home","title":"...","purpose":"...","isDetail":false,"icon":"home",
      "components":["hero summary card","quick actions list","recent items"],
+     "reads":["Habit"],"writes":["Habit"],
      "sampleData":{"items":[{"name":"...","detail":"..."}]}}
   ],
   "addedExtras": ["..."]
@@ -117,6 +183,8 @@ function normalize(
     let id = pascal(String(s.id || s.title || ""), `Screen${screens.length + 1}`);
     while (seen.has(id)) id = `${id}2`;
     seen.add(id);
+    const strList = (v: any): string[] =>
+      Array.isArray(v) ? v.map((x) => String(x)).slice(0, 8) : [];
     screens.push({
       id,
       title: String(s.title || id).slice(0, 40),
@@ -128,10 +196,36 @@ function normalize(
         ? s.components.map((c: any) => String(c)).slice(0, 10)
         : [],
       sampleData: s.sampleData,
+      reads: strList(s.reads),
+      writes: strList(s.writes),
     });
     if (screens.length >= MAX_SCREENS) break;
   }
   if (!screens.length) return null;
+
+  // Parse the data model, keeping only well-formed entities.
+  const entities: BlueprintEntity[] = Array.isArray(raw.entities)
+    ? raw.entities
+        .filter((e: any) => e && typeof e === "object" && (e.name || e.fields))
+        .map((e: any) => ({
+          name: pascal(String(e.name || "Item"), "Item"),
+          fields: Array.isArray(e.fields)
+            ? e.fields
+                .filter((f: any) => f && f.name)
+                .map((f: any) => ({
+                  name: String(f.name),
+                  type: String(f.type || "text"),
+                }))
+                .slice(0, 12)
+            : [],
+          seed: Array.isArray(e.seed)
+            ? e.seed
+                .filter((r: any) => r && typeof r === "object")
+                .slice(0, 8)
+            : [],
+        }))
+        .slice(0, 6)
+    : [];
 
   const ids = new Set(screens.map((s) => s.id));
   let tabs = Array.isArray(raw.tabs)
@@ -150,6 +244,12 @@ function normalize(
     background: hex(raw.background) || spec?.backgroundColor || "#F2F2F7",
     tabs,
     screens,
+    entities,
+    capabilities: Array.isArray(raw.capabilities)
+      ? raw.capabilities
+          .map((c: any) => String(c))
+          .filter((c: string) => CAPABILITIES.includes(c))
+      : [],
     addedExtras: Array.isArray(raw.addedExtras)
       ? raw.addedExtras.map((x: any) => String(x)).slice(0, 6)
       : [],
@@ -180,6 +280,8 @@ function fallbackBlueprint(spec: AppSpec | undefined, idea: string | undefined):
         sampleData: undefined,
       },
     ],
+    entities: [],
+    capabilities: [],
     addedExtras: [],
   };
 }

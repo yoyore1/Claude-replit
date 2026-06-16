@@ -41,6 +41,60 @@ TAP-TO-EDIT (critical — keep edits working):
   NOT  {["Personal","Work","Ideas","Travel"].map(f => <SettingsRow label={f} .../>)}  and NEVER a hardcoded literal inside .map() (e.g. label="Person") — that makes every row share one source line, so one edit changes them all.
 - Only use .map() for data the USER adds/changes at RUNTIME (e.g. notes they create). There, bind the prop to the item (label={item.title}, value={item.date}) — never a shared hardcoded literal — since runtime data is edited in-app, not by tapping source.
 
+REAL DATA & LOGIC (this is a working app, not a mockup) — split CONTENT from LOGIC:
+- CONTENT = static chrome (section headers, button labels, titles, decorative copy, colors).
+  Keep it literal + tap-editable per the rules above. This is what the user edits by tapping.
+- DATA = the app's real records. When a DATA MODEL is given, store them with the kit's
+  useEntity hook — do NOT hardcode them as literal rows. The store is seeded, persisted, and
+  shared across every screen, so data added on one screen shows on others and survives reload.
+- LOGIC is real code now: useState/useEffect, computed values, and .map() over store/runtime
+  data are all ALLOWED and expected (the old "no computed values / no .map for fixed sets" rule
+  applies ONLY to static chrome, NOT to real data rows the user manages in-app).
+- Wire add/edit/delete to actually mutate the store. Example of a real data-backed screen:
+    import { Screen, GroupedSection, SettingsRow, AppButton, SearchField, useEntity } from "../../ui";
+    export default function Habits({ navigate }) {
+      const habits = useEntity("Habit");          // { items, add, update, remove }
+      const [draft, setDraft] = React.useState("");
+      return (
+        <Screen largeTitle="Habits">
+          <GroupedSection header="Today">
+            {habits.items.map((h) => (
+              <SettingsRow key={h.id} label={h.title} value={h.doneToday ? "Done" : "Mark"}
+                onPress={() => habits.update(h.id, { doneToday: !h.doneToday })} />
+            ))}
+          </GroupedSection>
+          <SearchField placeholder="New habit" value={draft} onChangeText={setDraft} />
+          <AppButton title="Add habit" onPress={() => { if (draft.trim()) { habits.add({ title: draft.trim(), streak: 0, doneToday: false }); setDraft(""); } }} />
+        </Screen>
+      );
+    }
+  Static headers/labels stay literal (editable); the rows come from the store (real data).
+
+DEVICE FEATURES (only when the app needs them) — use the kit wrappers, not raw Expo. They
+request permission themselves, fail soft, and work in the web preview:
+- Photo: \`const uri = await pickImage();\` (library) or \`pickImage({ camera: true })\` (capture).
+    Render with <Image source={{ uri }} .../> and store the uri (e.g. on an entity row).
+- Reminder / alarm: \`await scheduleReminder({ title: "Stand up", at: 60 });\` ( \`at\` = seconds
+    from now, or a Date). Returns an id; \`cancelReminder(id)\` to cancel.
+- Location: \`const { coords, error, loading } = useLocation();\` then coords.latitude / longitude.
+- Motion: \`const { x, y, z } = useMotion();\` (accelerometer in g).
+  Import from the kit: \`import { pickImage, scheduleReminder, useLocation, useMotion } from "../../ui";\`.
+  Example — add a photo to a journal entry:
+    const photos = useEntity("Entry");
+    <AppButton title="Add photo" onPress={async () => { const uri = await pickImage({ camera: true }); if (uri) photos.add({ uri, at: Date.now() }); }} />
+
+INTERNET + AI (only when the app needs them) — also kit wrappers, async, fail soft:
+- Live data: \`const data = await apiGet("https://api.open-meteo.com/v1/forecast?latitude=40.7&longitude=-74&current=temperature_2m");\`
+    (also \`apiPost(url, body)\`). Use real public APIs (e.g. open-meteo for weather). Returns parsed
+    JSON or null; render it as runtime data with .map()/useEntity.
+- AI text: \`const answer = await askAI("Summarize: " + text);\`
+- AI vision: \`const img = await pickImage({ camera: true, base64: true }); const a = await classifyImage(img, "What plant is this?");\`
+- Generate image: \`const url = await generateImage("a cozy reading nook, warm light"); // <Image source={{uri:url}}/>\`
+- Voice out: \`await speak("Good morning!");\`  Voice in: \`const v = useVoiceInput(); // v.start(); const text = await v.stop();\`
+- Ask your docs (RAG): \`await indexDoc(noteText); const answer = await askDocs("what did I say about X?");\`
+  Import the ones you use from "../../ui". Treat results as real runtime data (load into
+  state/useEntity); keep a loading state while awaiting.
+
 iOS STRUCTURE (from tokens):
 - Apple type scale via \`type\` (Body 17pt; large title 34pt bold). System font for functional UI; display font only on heroes.
 - Text colors via \`colors\` (label / secondaryLabel / tertiaryLabel). Background fits THE APP's vibe — do NOT force grey.

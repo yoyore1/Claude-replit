@@ -42,11 +42,32 @@ ${SCREEN_CONTRACT}`,
 
 /** Build the per-screen user prompt from its blueprint slice. */
 function screenUserPrompt(bp: Blueprint, screen: BlueprintScreen): string {
+  const entities = bp.entities ?? [];
+  const dataModel = entities.length
+    ? `\nDATA MODEL — store REAL data with useEntity("Name") (items / add / update / remove). Seeded + persisted + shared across screens:\n${entities
+        .map(
+          (e) =>
+            `- ${e.name}: { ${e.fields
+              .map((f) => `${f.name}: ${f.type}`)
+              .join(", ")} }`,
+        )
+        .join("\n")}`
+    : "";
+  const reads = screen.reads ?? [];
+  const writes = screen.writes ?? [];
+  const screenData =
+    entities.length && (reads.length || writes.length)
+      ? `\nThis screen should READ ${reads.join(", ") || "(none)"} and WRITE ${writes.join(", ") || "(none)"} via useEntity — render real rows with .map(), and make add/edit/delete actually mutate the store.`
+      : "";
+  const caps = bp.capabilities ?? [];
+  const capLine = caps.length
+    ? `\nCAPABILITIES this app uses: ${caps.join(", ")}. Use the kit wrappers where this screen needs them — camera/photo: pickImage()/pickImage({camera:true,base64:true}); reminders: scheduleReminder({title, at}); location: useLocation(); motion: useMotion(); AI: askAI(prompt) / classifyImage(dataUrl, question); live data: apiGet(url) / apiPost(url, body); image generation: generateImage(prompt)→url; voice: speak(text) / useVoiceInput(); RAG: indexDoc(text) / askDocs(question). They handle permissions/CORS and work in the preview.`
+    : "";
   return `App: ${bp.appName}
 This screen — id "${screen.id}", title "${screen.title}"${screen.isDetail ? " (a drill-in DETAIL screen reached via navigate)" : " (a bottom-tab screen)"}.
 Purpose: ${screen.purpose}
-Sections to include: ${screen.components.length ? screen.components.join("; ") : "design sensible sections for the purpose"}
-${screen.sampleData ? `Seed data to render so it looks alive:\n${JSON.stringify(screen.sampleData)}` : ""}
+Sections to include: ${screen.components.length ? screen.components.join("; ") : "design sensible sections for the purpose"}${dataModel}${screenData}${capLine}
+${screen.sampleData ? `Extra static sample data for decorative sections:\n${JSON.stringify(screen.sampleData)}` : ""}
 Other screens you can navigate() to: ${bp.screens
     .filter((s) => s.id !== screen.id)
     .map((s) => s.id)
@@ -127,7 +148,9 @@ export async function buildApp(input: {
 
   // ── Phase 3: deterministic shell + assemble ─────────────────────────────
   progress(88, "Wiring it all together…");
-  const files: Record<string, string> = { "App.tsx": renderAppShell(bp) };
+  const files: Record<string, string> = {
+    "App.tsx": renderAppShell(bp, input.projectId),
+  };
   for (const f of screenFiles) files[f.screen.file] = f.code;
 
   // Validate every file parses before writing anything.

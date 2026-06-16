@@ -9,9 +9,15 @@
  * two roles from environment variables. Nothing here is provider-specific.
  */
 
+/** OpenAI-compatible multimodal content parts (used for vision). */
+export type ContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
-  content: string;
+  /** Plain text, or content parts (text + image_url) for vision-capable models. */
+  content: string | ContentPart[];
 }
 
 export interface LLMConfig {
@@ -129,9 +135,23 @@ export function interviewerConfig(): LLMConfig {
 /** Builder brain (MiniMax OpenAI-compatible mode). */
 export function builderConfig(): LLMConfig {
   return fromEnv("MINIMAX", {
-    baseUrl: "https://api.minimax.io/v1",
-    model: "MiniMax-M2",
+    baseUrl: "https://api.fireworks.ai/inference/v1",
+    model: "accounts/fireworks/models/minimax-m3",
   });
+}
+
+/**
+ * Vision/AI brain that generated apps call at runtime (image Q&A + smart text).
+ * Defaults to Qwen3-VL on DeepInfra (OpenAI-compatible); set VISION_* to override.
+ */
+export function visionConfig(): LLMConfig {
+  const e = process.env;
+  return {
+    baseUrl: e.VISION_BASE_URL || "https://api.deepinfra.com/v1/openai",
+    apiKey: e.VISION_API_KEY || "",
+    model: e.VISION_MODEL || "Qwen/Qwen3-VL-30B-A3B-Instruct",
+    chatPath: e.VISION_CHAT_PATH,
+  };
 }
 
 export function isConfigured(c: LLMConfig): boolean {
