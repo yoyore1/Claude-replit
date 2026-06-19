@@ -105,6 +105,52 @@ export function StoreProvider({
   );
 }
 
+/**
+ * Wipe all locally-stored app data — used by the Delete Account control. Clears
+ * the persisted store; on the web preview it also reloads so the UI re-seeds
+ * fresh, on device the data is gone on next launch.
+ */
+export async function resetAppData(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* storage unavailable — nothing to clear */
+  }
+  if (
+    typeof window !== "undefined" &&
+    typeof (window as any).location?.reload === "function"
+  ) {
+    try {
+      (window as any).location.reload();
+    } catch {
+      /* not on web */
+    }
+  }
+}
+
+/**
+ * Forget the chosen side in a two-sided app, sending the user back to the role
+ * chooser. Used by Settings → "Switch role". Reloads on web so the change shows
+ * immediately; on device it takes effect on next launch.
+ */
+export async function resetRole(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem("appable.role");
+  } catch {
+    /* storage unavailable */
+  }
+  if (
+    typeof window !== "undefined" &&
+    typeof (window as any).location?.reload === "function"
+  ) {
+    try {
+      (window as any).location.reload();
+    } catch {
+      /* not on web */
+    }
+  }
+}
+
 let idSeq = 0;
 function genId(): string {
   idSeq += 1;

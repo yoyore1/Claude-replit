@@ -149,6 +149,24 @@ export const getMessages = (id: string, kind?: string) =>
     `/projects/${id}/messages${kind ? `?kind=${kind}` : ""}`,
   );
 
+/* ============================ included documents ========================== */
+
+export interface DocSection {
+  heading: string;
+  body: string;
+}
+export interface Doc {
+  title: string;
+  sections: DocSection[];
+}
+export interface AppDocs {
+  privacy: Doc;
+  terms: Doc;
+  support: Doc;
+}
+
+export const getDocs = (id: string) => api<AppDocs>(`/projects/${id}/docs`);
+
 /* ================================ ideas =================================== */
 
 export interface Idea {

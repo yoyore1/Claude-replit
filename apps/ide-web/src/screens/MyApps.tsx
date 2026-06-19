@@ -7,6 +7,7 @@ import {
   setUserEmail,
   type Project,
 } from "../api.js";
+import { DocModal } from "../components/DocModal.js";
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "Draft",
@@ -17,9 +18,18 @@ const STATUS_LABEL: Record<string, string> = {
   error: "Needs attention",
 };
 
+/** Docs ship once an app is paid for or built. */
+function hasDocs(p: Project): boolean {
+  return (
+    p.paidAt != null ||
+    ["building", "running", "sleeping"].includes(p.status)
+  );
+}
+
 export function MyApps({ go }: { go: Go }) {
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [docsFor, setDocsFor] = useState<string | null>(null);
 
   useEffect(() => {
     listProjects()
@@ -101,6 +111,25 @@ export function MyApps({ go }: { go: Go }) {
               <span className="muted small">
                 Updated {new Date(p.updatedAt).toLocaleDateString()}
               </span>
+              {hasDocs(p) && (
+                <span
+                  className="docs-line"
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDocsFor(p.id);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.stopPropagation();
+                      setDocsFor(p.id);
+                    }
+                  }}
+                >
+                  Privacy · Terms · Support ✓ — view
+                </span>
+              )}
             </button>
           ))}
 
@@ -110,6 +139,10 @@ export function MyApps({ go }: { go: Go }) {
           )}
         </div>
       </div>
+
+      {docsFor && (
+        <DocModal projectId={docsFor} onClose={() => setDocsFor(null)} />
+      )}
     </div>
   );
 }

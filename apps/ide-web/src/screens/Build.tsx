@@ -379,7 +379,9 @@ export function Build({
                   ? "Your app is ready."
                   : st === "sleeping"
                     ? "App is paused."
-                    : "Tap the button below to start your build."}
+                    : st === "error"
+                      ? "A few screens didn't finish — tap below to finish your app."
+                      : "Tap the button below to start your build."}
             </div>
           )}
 
@@ -433,9 +435,12 @@ export function Build({
             </div>
           ) : (
             <div className="phone-empty-state">
-              <b>Your app will appear here</b>
+              <b>{st === "error" ? "Let's finish your app" : "Your app will appear here"}</b>
+              {st === "error" && (
+                <span className="small">A few screens didn't finish generating.</span>
+              )}
               <button className="primary" onClick={() => s.send({ type: "build.start" })}>
-                Build my app
+                {st === "error" ? "Finish my app" : "Build my app"}
               </button>
             </div>
           )}
@@ -492,7 +497,9 @@ export function Build({
               <p className="muted small side-panel-empty">
                 {building
                   ? "Starting Metro for your phone… about 10–20 seconds, then the QR appears."
-                  : "Your QR code shows up here once the build finishes and Metro is running."}
+                  : st === "error"
+                    ? "A few screens didn't finish — tap Finish my app, then your QR appears."
+                    : "Your QR code shows up here once the build finishes and Metro is running."}
               </p>
             )}
           </div>

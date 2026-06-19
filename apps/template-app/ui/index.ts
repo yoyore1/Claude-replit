@@ -5,8 +5,10 @@ export * from "./tokens";
 export { Icon, Ionicons } from "./Icon";
 export { Screen } from "./Screen";
 export { AppButton } from "./AppButton";
+export { GlassPanel, GlassCard } from "./Glass";
 export { GroupedSection } from "./GroupedSection";
 export { SettingsRow } from "./SettingsRow";
+export { SwipeableRow } from "./SwipeableRow";
 export { SegmentedControl } from "./SegmentedControl";
 export { SearchField } from "./SearchField";
 export { Sheet } from "./Sheet";
@@ -17,7 +19,7 @@ export type { AlertButton } from "./native";
 export { tapField } from "@cr/tap-edit-runtime";
 // Real, persisted, shared app data: <StoreProvider> at the root + useEntity() in
 // screens. Lets generated apps store and mutate data, not just render samples.
-export { StoreProvider, useEntity } from "./store";
+export { StoreProvider, useEntity, resetAppData, resetRole } from "./store";
 export type { EntityApi } from "./store";
 // Device capabilities (camera/photo, reminders, location, motion) with simple,
 // safe wrappers that work on device and in the web preview.

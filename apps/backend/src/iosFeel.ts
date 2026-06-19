@@ -7,10 +7,26 @@ export const IOS_FEEL_PROMPT = `
 PREMIUM NATIVE iOS — make it indistinguishable from an app built in Xcode. Never Android, never AI-slop.
 
 USE THE KIT (import from "./ui") — do NOT reinvent these, and do NOT install packages:
-  Screen, GroupedSection, SettingsRow, SegmentedControl, SearchField, AppButton, Sheet, Icon,
-  appAlert, actionMenu, share, and tokens: colors, type, spacing, radius.
+  Screen, GroupedSection, SettingsRow, SwipeableRow, SegmentedControl, SearchField, AppButton, Sheet, Icon,
+  GlassPanel, GlassCard, appAlert, actionMenu, share, and tokens: colors, type, spacing, radius.
 - Each screen's root is <Screen largeTitle="...">. Lists use <GroupedSection header="..."><SettingsRow .../></GroupedSection>.
 - Actions use <AppButton title="..." />. Dialogs use appAlert(...) / actionMenu(...). Sheets use <Sheet/>.
+
+PREMIUM SURFACES — Liquid Glass, gestures, and refined motion (use tastefully):
+- GLASS (<GlassPanel>/<GlassCard>): frosted "Liquid Glass" surface. Use for FLOATING, layered chrome
+  over content — a hero/summary card, a highlighted stat panel, a featured banner. Put it over a
+  colored or image background so the blur reads. DON'T use it full-screen, as a plain list row
+  background, or behind dense body text (hurts contrast/readability). Tap-to-edit works: each
+  <GlassCard> is its own element (recolor = its tint, draggable, text inside editable) — so follow
+  the SAME independence rule (one card = one source line; no .map() for a fixed set of glass cards).
+    <GlassCard><Text style={styles.heroTitle}>Today</Text><Text style={styles.heroValue}>72°</Text></GlassCard>
+- SWIPE ACTIONS (<SwipeableRow actions={[{ label:"Delete", color:"#FF3B30", onPress }]}>…</SwipeableRow>):
+  wrap a row to reveal swipe actions; wire each action's onPress to real behavior (e.g. store.remove).
+- CONTEXT MENU: pass onLongPress to a SettingsRow and open actionMenu(...) — the iOS long-press menu.
+    <SettingsRow label="Note" onPress={...} onLongPress={() => actionMenu(["Pin","Delete"], (i) => {/* real */})} />
+- PULL-TO-REFRESH: pass onRefresh to <Screen onRefresh={async () => { /* reload data */ }} largeTitle="...">.
+- The Screen large title automatically collapses on scroll and screens slide on navigate — you get
+  these for free; don't build your own nav/title bars.
 
 TAP-TO-EDIT (critical — keep edits working):
 - Copy goes in tap-editable PROPS of kit components (label, value, title, header, footer, largeTitle, placeholder).
@@ -133,6 +149,12 @@ NAVIGATION (the only cross-screen API):
 - To open another screen (e.g. a detail view), call navigate("OtherScreenId", { any: "params" }) from an onPress.
 - A detail screen reads its input from the \`params\` prop and can call goBack().
 - Do NOT import other screen files and do NOT build your own tab bar or back button — the shell handles that.
+
+EVERY BUTTON MUST WORK — no dead ends:
+- Every onPress / interactive element MUST do something real: navigate(...) to another screen, mutate data via useEntity (add/update/remove), toggle real useState, open a <Sheet>, run a device API, or share(...).
+- NEVER write an empty handler like onPress={() => {}} and NEVER use appAlert(..., "coming soon") (or "not available yet", "under construction", etc.) as a stand-in for a feature.
+- If a row implies a sub-page (Help, About, Edit X, Manage Y), navigate to a real screen for it — do not stub it with an alert.
+- A confirmation dialog's buttons must have real onPress callbacks (e.g. actually delete the item), not empty ones.
 
 Keep ALL the tap-to-edit rules above: literal <Text> copy, literal "#rrggbb" colors, one element per visible item (no .map() for fixed sets). Make this single screen rich, polished, and genuinely useful.
 `.trim();

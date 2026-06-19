@@ -8,24 +8,24 @@ import {
 } from "../components/IdeaSuggestions.js";
 
 const IDEA_POOL = [
-  "Keep my habits going with daily streaks",
-  "Take bookings for my dog-walking business",
-  "Plan dinners and make my grocery list for me",
-  "Make saving money feel like a fun game",
-  "Track my workouts with my gym buddies",
-  "Remind me to water my plants so they stop dying",
-  "A daily journal that asks me how I'm feeling",
-  "A chore chart my kids actually want to use",
-  "Keep track of what's in my little online shop",
-  "Save my family's secret recipes in one place",
-  "Study with flash cards before my big exam",
-  "Pack the perfect bag for any trip",
-  "Split bills fairly with my roommates",
-  "Count down to my next big trip",
-  "Log my baby's feeds and naps",
-  "Keep a reading list of books to finish",
-  "Practice a new language a little each day",
-  "Send simple invoices for my side hustle",
+  "A habit tracker that turns daily wins into streaks",
+  "A booking app for local dog-walkers and their clients",
+  "A meal planner that builds everyone's grocery list",
+  "A budgeting app that makes saving feel like a game",
+  "A workout log friends can share and compete in",
+  "A plant-care reminder so no one's plants die",
+  "A daily journal that checks in on how people feel",
+  "A chore chart families actually stick to",
+  "A simple storefront for a small online shop",
+  "A recipe box communities can add to and share",
+  "A flash-card app for students cramming for exams",
+  "A packing-list app for travelers and trips",
+  "A bill-splitter for roommates and friends",
+  "A countdown app for events people can't wait for",
+  "A feed-and-nap tracker for new parents",
+  "A reading list app for book lovers",
+  "A language app for a few minutes of daily practice",
+  "An invoicing app for freelancers and side hustles",
 ];
 
 function pickThree(except: string[] = []): string[] {
@@ -41,15 +41,15 @@ function pickThree(except: string[] = []): string[] {
 // half are encouraging/half-formed nudges that hint "just start — Suggest ideas
 // has you covered."
 const PLACEHOLDERS = [
-  "I want an app that plans my meals for the week",
+  "An app that plans dinners for busy families",
   "Even half an idea works — we'll shape it",
-  "An app to keep my workouts on track",
+  "A workout app friends can do together",
   "Just say it, however it comes out…",
-  "Take bookings for my little business",
+  "A booking app for a local business",
   "Not sure yet? Tap 💡 Suggest ideas",
-  "Remind me to water my plants",
+  "A habit tracker people stick with",
   'Say "gym", "recipes", "budget"… we\'ve got you',
-  "Split expenses with my roommates",
+  "A bill-splitter for roommates and friends",
   "Stuck for words? We'll fill in the rest",
 ];
 

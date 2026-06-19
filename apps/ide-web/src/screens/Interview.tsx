@@ -28,9 +28,11 @@ export function Interview({
   const [input, setInput] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
   const [waiting, setWaiting] = useState(false);
+  const [stalled, setStalled] = useState(false);
   const [advancing, setAdvancing] = useState(false);
   const [listening, setListening] = useState(false);
   const sentIdea = useRef(false);
+  const lastSent = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const recogRef = useRef<any>(null);
 
@@ -63,10 +65,33 @@ export function Interview({
     const last = s.interview[s.interview.length - 1];
     if (last?.role === "assistant") {
       setWaiting(false);
+      setStalled(false);
       setPicked([]);
     }
     scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight);
   }, [s.interview]);
+
+  // Safety net for a truly silent failure (backend restart, dropped socket).
+  // The backend always sends a reply on success OR failure (so the spinner
+  // normally clears on its own); this only fires if nothing comes back at all.
+  // Keep it longer than the server's per-turn budget (90s + a retry) so it never
+  // cries wolf while the server is still working.
+  useEffect(() => {
+    if (!waiting) return;
+    const id = setTimeout(() => {
+      setWaiting(false);
+      setStalled(true);
+    }, 120000);
+    return () => clearTimeout(id);
+  }, [waiting]);
+
+  // A server error frame also stops the spinner and offers a retry.
+  useEffect(() => {
+    if (s.lastError && waiting) {
+      setWaiting(false);
+      setStalled(true);
+    }
+  }, [s.lastError, waiting]);
 
   async function continueFlow() {
     if (isGuest()) {
@@ -100,10 +125,21 @@ export function Interview({
 
   function sendAnswer(text: string) {
     if (!text.trim()) return;
+    lastSent.current = text;
     s.appendLocal("interview", text);
     s.send({ type: "chat.send", conversation: "interview", text });
     setInput("");
     setPicked([]);
+    setStalled(false);
+    setWaiting(true);
+  }
+
+  // Re-send the last answer after a stall (the send-queue delivers it once the
+  // socket is back). Doesn't re-add the user bubble — it's already shown.
+  function retry() {
+    if (!lastSent.current) return;
+    s.send({ type: "chat.send", conversation: "interview", text: lastSent.current });
+    setStalled(false);
     setWaiting(true);
   }
 
@@ -188,6 +224,14 @@ export function Interview({
               <span className="dot" />
               <span className="dot" />
               <span className="dot" />
+            </div>
+          )}
+          {stalled && (
+            <div className="stall-note">
+              <span>That took longer than expected.</span>
+              <button className="chip" onClick={retry}>
+                Try again
+              </button>
             </div>
           )}
         </div>

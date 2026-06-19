@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from "react";
 import type { Go } from "../App.js";
 import { ensureSpec, getProject, type Project } from "../api.js";
+import { DocModal } from "../components/DocModal.js";
+
+type DocKey = "privacy" | "terms" | "support";
 
 export function Overview({ go, projectId }: { go: Go; projectId: string }) {
   const [project, setProject] = useState<Project | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [docTab, setDocTab] = useState<DocKey | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -74,18 +78,18 @@ export function Overview({ go, projectId }: { go: Go; projectId: string }) {
 
         <div className="section-title">Included documents</div>
         <div className="doc-cards">
-          <div className="doc-card">
-            <b>Privacy policy</b>
-            <span>Written for {spec?.name ?? "your app"}</span>
-          </div>
-          <div className="doc-card">
-            <b>Terms of service</b>
-            <span>Short and readable</span>
-          </div>
-          <div className="doc-card">
-            <b>Support page</b>
-            <span>Help for your users</span>
-          </div>
+          <button className="doc-card clickable" onClick={() => setDocTab("privacy")}>
+            <b>Privacy policy ✓</b>
+            <span>Written for {spec?.name ?? "your app"} — click to view</span>
+          </button>
+          <button className="doc-card clickable" onClick={() => setDocTab("terms")}>
+            <b>Terms of service ✓</b>
+            <span>Short and readable — click to view</span>
+          </button>
+          <button className="doc-card clickable" onClick={() => setDocTab("support")}>
+            <b>Support page ✓</b>
+            <span>Help for your users — click to view</span>
+          </button>
         </div>
 
         <button
@@ -98,6 +102,14 @@ export function Overview({ go, projectId }: { go: Go; projectId: string }) {
           {alreadyBuilt ? "Open my app" : "Bring it to life ✨"}
         </button>
       </div>
+
+      {docTab && (
+        <DocModal
+          projectId={projectId}
+          initial={docTab}
+          onClose={() => setDocTab(null)}
+        />
+      )}
     </div>
   );
 }

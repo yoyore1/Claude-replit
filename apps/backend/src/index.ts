@@ -45,6 +45,7 @@ import {
   requireAuth,
 } from "./auth.js";
 import { suggestIdeas, type SuggestInput } from "./ideas.js";
+import { legalDocs } from "./legalDocs.js";
 
 const PORT = Number(process.env.PORT || 8787);
 const HOST = process.env.HOST || "0.0.0.0";
@@ -198,6 +199,25 @@ app.post<{ Params: { id: string } }>(
       status: project.status === "draft" ? "spec_ready" : project.status,
     });
     return { spec: updated?.spec };
+  },
+);
+
+// The app's tailored Privacy / Terms / Support docs. Available before the build
+// (computed from the spec) so the IDE can show "included, click to view".
+app.get<{ Params: { id: string } }>(
+  "/projects/:id/docs",
+  { preHandler: requireAuth },
+  async (req, reply) => {
+    const project = ownedProject(req, reply, req.params.id);
+    if (!project) return;
+    const appName = project.spec?.name || project.name || "your app";
+    return legalDocs({
+      appName,
+      // Capabilities aren't known until the architect runs; pre-build docs use a
+      // generic data-collection clause. The on-device screens use the real set.
+      capabilities: [],
+      description: project.spec?.description,
+    });
   },
 );
 

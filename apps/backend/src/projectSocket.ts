@@ -204,7 +204,25 @@ export class ProjectSocket {
   private async onInterview(conn: Conn, text: string) {
     const { projectId } = conn;
     addMessage({ projectId, conversation: "interview", role: "user", content: text });
-    const turn = await interviewTurn(this.historyFor(projectId, "interview"));
+
+    let turn;
+    try {
+      turn = await interviewTurn(this.historyFor(projectId, "interview"));
+    } catch (e: any) {
+      // Never leave the client hanging: send a visible reply (clears the spinner)
+      // and let them resend. The user's message is already saved above.
+      this.reply(
+        projectId,
+        "interview",
+        "Sorry — I hit a snag on that one. Could you send your answer again?",
+      );
+      this.broadcast(projectId, {
+        type: "error",
+        error: String(e?.message ?? e),
+      });
+      return;
+    }
+
     this.reply(projectId, "interview", turn.reply);
 
     if (turn.done) {
@@ -294,7 +312,20 @@ export class ProjectSocket {
       onProgress: (pct, label) => this.log(projectId, label, pct),
     });
 
-    if (res.ok) {
+    if (res.ok && res.incompleteScreens?.length) {
+      // Built, but some screens didn't generate for real (still placeholders).
+      // Don't present it as finished: no preview/QR, and a status that isn't the
+      // clean "Live" state. Rebuilding regenerates the unfinished screens.
+      updateProject(projectId, { status: "error" });
+      this.broadcast(projectId, { type: "status", status: "error" });
+      const names = res.incompleteScreens.join(", ");
+      this.log(projectId, `Couldn't finish: ${names}`, 100);
+      this.reply(
+        projectId,
+        "build",
+        `Almost there — ${res.incompleteScreens.length} screen${res.incompleteScreens.length > 1 ? "s" : ""} (${names}) didn't finish generating, so I'm not showing the preview yet. Tap "Build my app" again to finish ${res.incompleteScreens.length > 1 ? "them" : "it"}.`,
+      );
+    } else if (res.ok) {
       updateProject(projectId, { status: "running", preview: this.preview() });
       this.broadcast(projectId, { type: "status", status: "running" });
       this.broadcast(projectId, { type: "preview", preview: this.preview() });

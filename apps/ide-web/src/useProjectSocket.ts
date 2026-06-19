@@ -47,6 +47,8 @@ export interface ProjectSocket {
   projectStatus: string | null;
   interviewSuggestions: InterviewSuggestions | null;
   preview: Preview | null;
+  /** Last error frame from the server (cleared when the next message arrives). */
+  lastError: string | null;
   send: (obj: unknown) => void;
   appendLocal: (conversation: Conversation, text: string) => void;
   seed: (conversation: Conversation, msgs: Msg[]) => void;
@@ -66,8 +68,12 @@ export function useProjectSocket(projectId: string): ProjectSocket {
   const [interviewSuggestions, setInterviewSuggestions] =
     useState<InterviewSuggestions | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
+  const [lastError, setLastError] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
+  // Messages sent while the socket was reconnecting — flushed once it reopens, so
+  // an answer typed during a backend restart isn't silently dropped.
+  const outbox = useRef<string[]>([]);
 
   const setFor = useCallback(
     (conversation: Conversation, fn: (prev: Msg[]) => Msg[]) => {
@@ -86,7 +92,13 @@ export function useProjectSocket(projectId: string): ProjectSocket {
     const connect = () => {
       const ws = new WebSocket(wsUrl(projectId));
       wsRef.current = ws;
-      ws.onopen = () => setConnected(true);
+      ws.onopen = () => {
+        setConnected(true);
+        // Flush anything queued while we were disconnected.
+        const pending = outbox.current;
+        outbox.current = [];
+        for (const text of pending) ws.send(text);
+      };
       ws.onmessage = (ev) => {
         let msg: any;
         try {
@@ -94,7 +106,12 @@ export function useProjectSocket(projectId: string): ProjectSocket {
         } catch {
           return;
         }
+        // Any real frame means the server is responsive again — clear stale errors.
+        if (msg.type !== "error") setLastError(null);
         switch (msg.type) {
+          case "error":
+            setLastError(String(msg.error ?? "Something went wrong"));
+            break;
           case "hello":
             setProjectStatus(msg.status ?? null);
             if (msg.spec) setSpec(msg.spec);
@@ -145,8 +162,11 @@ export function useProjectSocket(projectId: string): ProjectSocket {
   }, [projectId, setFor]);
 
   const send = useCallback((obj: unknown) => {
+    const text = JSON.stringify(obj);
     const ws = wsRef.current;
-    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(text);
+    // Not open (reconnecting after a restart/drop) — queue and flush on reopen.
+    else outbox.current.push(text);
   }, []);
 
   const appendLocal = useCallback(
@@ -175,6 +195,7 @@ export function useProjectSocket(projectId: string): ProjectSocket {
     projectStatus,
     interviewSuggestions,
     preview,
+    lastError,
     send,
     appendLocal,
     seed,

@@ -35,6 +35,8 @@ export interface ChatOptions {
   /** Ask the provider for a JSON object response when supported. */
   json?: boolean;
   signal?: AbortSignal;
+  /** Hard timeout in ms (default 60s) so a hung provider can't hang forever. */
+  timeoutMs?: number;
 }
 
 export class LLMError extends Error {
@@ -66,6 +68,14 @@ export async function chat(
   if (opts.maxTokens) body.max_tokens = opts.maxTokens;
   if (opts.json) body.response_format = { type: "json_object" };
 
+  // Hard timeout so a hung provider can't wedge a turn forever. Combine our
+  // timeout with any caller-provided signal.
+  const timeoutMs = opts.timeoutMs ?? 60_000;
+  const timer = new AbortController();
+  const onAbort = () => timer.abort();
+  opts.signal?.addEventListener("abort", onAbort);
+  const timeout = setTimeout(() => timer.abort(), timeoutMs);
+
   let res: Response;
   try {
     res = await fetch(url, {
@@ -75,10 +85,18 @@ export async function chat(
         authorization: `Bearer ${config.apiKey}`,
       },
       body: JSON.stringify(body),
-      signal: opts.signal,
+      signal: timer.signal,
     });
   } catch (e: any) {
-    throw new LLMError(`Network error calling ${url}: ${e.message}`);
+    const aborted = timer.signal.aborted && !opts.signal?.aborted;
+    throw new LLMError(
+      aborted
+        ? `LLM request timed out after ${Math.round(timeoutMs / 1000)}s calling ${url}`
+        : `Network error calling ${url}: ${e.message}`,
+    );
+  } finally {
+    clearTimeout(timeout);
+    opts.signal?.removeEventListener("abort", onAbort);
   }
 
   const text = await res.text();
@@ -124,12 +142,22 @@ function fromEnv(prefix: string, defaults: Partial<LLMConfig>): LLMConfig {
   };
 }
 
-/** Interviewer brain (DeepSeek via Fireworks AI). */
+/**
+ * Interviewer brain — a FAST, non-reasoning instruct model. A reasoning model
+ * (its hidden chain-of-thought) made interview turns slow/variable; the interview
+ * is just a friendly Q&A, so we default to Qwen3-Next-80B-A3B-Instruct on
+ * DeepInfra (MoE, ~3B active → snappy). The API key falls back to DEEPINFRA_API_KEY
+ * so no separate QWEN_API_KEY is needed when using the DeepInfra default. Any
+ * QWEN_* env var still overrides (e.g. to point back at Fireworks).
+ */
 export function interviewerConfig(): LLMConfig {
-  return fromEnv("QWEN", {
-    baseUrl: "https://api.fireworks.ai/inference/v1",
-    model: "accounts/fireworks/models/deepseek-v4-flash",
-  });
+  const e = process.env;
+  return {
+    baseUrl: e.QWEN_BASE_URL || "https://api.deepinfra.com/v1/openai",
+    apiKey: e.QWEN_API_KEY || e.DEEPINFRA_API_KEY || "",
+    model: e.QWEN_MODEL || "Qwen/Qwen3-Next-80B-A3B-Instruct",
+    chatPath: e.QWEN_CHAT_PATH,
+  };
 }
 
 /** Builder brain (MiniMax OpenAI-compatible mode). */

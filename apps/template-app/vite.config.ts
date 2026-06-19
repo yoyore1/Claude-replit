@@ -49,6 +49,7 @@ export default defineConfig({
       "expo-file-system": path.resolve(__dirname, "web-shims/file-system.ts"),
       "expo-haptics": path.resolve(__dirname, "web-shims/haptics.ts"),
       "expo-blur": path.resolve(__dirname, "web-shims/blur.tsx"),
+      "expo-glass-effect": path.resolve(__dirname, "web-shims/glass-effect.tsx"),
       "@expo/vector-icons": path.resolve(__dirname, "web-shims/vector-icons.tsx"),
       "expo-linear-gradient": path.resolve(
         __dirname,

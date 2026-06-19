@@ -28,37 +28,43 @@ export interface SuggestInput {
 
 const FALLBACK: IdeaSet = {
   gold: {
-    title: "Plant Care Buddy",
-    pitch: "Never let a plant die again — gentle reminders for watering day.",
+    title: "Streak Coach",
+    pitch: "Turns daily wins into streaks people keep coming back for.",
   },
   silver: [
-    { title: "Meal Planner", pitch: "Plan the week's dinners and get the grocery list made for you." },
-    { title: "Money Saver", pitch: "Watch your spending and hit savings goals without the stress." },
+    { title: "Booked Up", pitch: "Lets local businesses take bookings their clients love." },
+    { title: "Stash Quest", pitch: "Makes saving money a game people actually want to play." },
   ],
 };
 
 function prompt(input: SuggestInput): ChatMessage[] {
   const sys: ChatMessage = {
     role: "system",
-    content: `You suggest mobile app ideas for a no-code app builder used by everyday people who
-have never made an app. Make every idea feel personal, doable, and exciting to a non-technical person.
+    content: `You suggest mobile app ideas for a no-code builder. The user is a first-time creator who
+wants to BUILD AND PUBLISH an app that OTHER people will download and use — not a private tool just for
+themselves. So every idea is a real little product with an audience, but described warmly and simply,
+so a non-technical creator instantly thinks "I could make that, and people would love it."
 Reply with ONLY a JSON object (no markdown) of the shape:
 {"gold": {"title": string, "pitch": string},
  "silver": [{"title": string, "pitch": string}, {"title": string, "pitch": string}]}
 RULES:
 - Titles are 2-4 plain words (no jargon, no "app" in the title).
-- Pitches name a REAL everyday benefit the person feels, in their words, under 80 characters.
-  Good: "Never forget to water your plants again." Bad: "A utility for plant care management."
-- "gold" is the most delightful, most relatable idea; "silver" are two solid alternatives.`,
+- Pitches name a REAL benefit the app's USERS feel, warm and human, under 80 characters.
+  Good: "Turns daily wins into streaks people keep coming back for."
+  Bad (too personal/just-for-me): "Helps me remember to water my plants."
+  Bad (too corporate): "A utility for habit management and retention."
+- Frame it for an audience ("people", "users", "fans", "locals", "families") — but keep one relatable
+  human spark, never a pitch-deck tone.
+- "gold" is the most delightful, broadly-appealing idea; "silver" are two solid alternatives.`,
   };
 
   let user: string;
   if (input.mode === "similar" && input.basedOn) {
     user = `Suggest ideas similar to "${input.basedOn.title}" (${input.basedOn.pitch}). Keep the same spirit but offer fresh angles.`;
   } else if (input.mode === "initial" && input.seed?.trim()) {
-    user = `The person is interested in: "${input.seed.trim()}". Suggest app ideas that fit their life.`;
+    user = `The creator is interested in: "${input.seed.trim()}". Suggest apps about this that real people would download and use.`;
   } else {
-    user = `Suggest three diverse, delightful app ideas a regular person would love to make for their own life.`;
+    user = `Suggest three diverse, delightful apps a first-time creator could publish that real people would love to use.`;
   }
   return [sys, { role: "user", content: user }];
 }

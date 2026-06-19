@@ -14,6 +14,7 @@ export function SettingsRow({
   icon,
   iconColor = colors.tint,
   onPress,
+  onLongPress,
   toggle,
   onToggle,
   isLast,
@@ -26,6 +27,8 @@ export function SettingsRow({
   icon?: string;
   iconColor?: string;
   onPress?: () => void;
+  /** Long-press handler — pair with actionMenu(...) for an iOS context menu. */
+  onLongPress?: () => void;
   toggle?: boolean;
   onToggle?: (v: boolean) => void;
   isLast?: boolean;
@@ -39,7 +42,7 @@ export function SettingsRow({
   labelStyle?: any;
   valueStyle?: any;
 }) {
-  const Container: any = onPress ? Pressable : View;
+  const Container: any = onPress || onLongPress ? Pressable : View;
   const override = StyleSheet.flatten(style) || {};
   const rowBg =
     override.backgroundColor != null
@@ -48,6 +51,7 @@ export function SettingsRow({
   return (
     <Container
       onPress={onPress}
+      onLongPress={onLongPress}
       style={({ pressed }: { pressed?: boolean }) => [
         styles.row,
         rowBg,
